@@ -1,0 +1,16 @@
+{
+  "name": "pxc",
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "dependencies": [
+    {
+      "name": "llvm",
+      "default-features": false,
+      "features": [
+        "target-x86",
+        "enable-assertions"
+      ]
+    },
+    "gtest"
+  ]
+}
