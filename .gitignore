@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# mdBook build output (Docs/book/ holds the sources; the rendered site is generated)
+Docs/book/book/
+

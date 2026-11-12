@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026-Present Pen-NineCat(PenNineCat)
+# https://github.com/Pen-NineCat
+
+[book]
+title = "Pxc 语言规范 / The Pxc Language Reference"
+authors = ["Pen-NineCat"]
+language = "zh-CN"
+src = "src"
+
+[output.html]
+additional-css = ["theme/pxc.css"]
+git-repository-url = "https://github.com/Pen-NineCat/Pxc"
+edit-url-template = "https://github.com/Pen-NineCat/Pxc/edit/main/Docs/book/src/{path}"
+# 正文用规则 ID 互相引用，章节号没有引用价值；双语下「1. 中文 / 2. English」
+# 的编号也不成立，所以关掉侧栏自动编号（改回 false 即恢复 Rust Reference 的编号外观）
+no-section-label = true
+
+# 侧栏折叠：默认收起到章级。顶层是「中文 / English」两棵子树，
+# 折叠后两种语言各自只占一行。（侧栏不编号，编号见上面的 no-section-label）
+[output.html.fold]
+enable = true
+level = 0
+
+[output.html.search]
+use-boolean-and = true
+
+# 自定义写法（规则 ID / 提示块 / 规则引用 / 语言切换）由本目录的预处理器展开
+[preprocessor.pxc-spec]
+command = "python tools/pxc_spec.py"

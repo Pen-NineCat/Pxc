@@ -1,0 +1,258 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright(c) 2026-Present Pen-NineCat(PenNineCat) */
+/* https://github.com/Pen-NineCat */
+
+/*
+Pxc 规范站点的主题：只做三件事，其余交给 mdBook 默认主题。
+
+1. 版面改成三栏栅格，左栏放规则标签（`[storage.kinds]`）；
+2. 提示块去掉背景，只留 4px 左色条 + 带图标的彩色标题；
+3. 按主题给提示块配色，与 mdBook 自带的 5 套主题（light/rust/coal/navy/ayu）对齐。
+
+风格来源是 Rust Reference 的 theme/reference.css，但这里是重写而非拷贝：
+原版约 600 行，大半是 `:has(+ h2)` 一类的对位补丁，换字体就要重调。
+*/
+
+/* ── 1. 版面 ─────────────────────────────────────────────── */
+
+/* 让栅格能用到窗口全宽，正文宽度由 main 的居中列决定 */
+.page,
+.content {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+#menu-bar,
+#mdbook-menu-bar {
+    margin-left: 0;
+}
+
+main {
+    display: grid;
+    grid-template-columns:
+        [rules] minmax(36px, 1fr)
+        [text] auto
+        [margin] minmax(36px, 1fr);
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    /* 栅格之间不会发生外边距折叠，所以用行距代替 */
+    row-gap: 16px;
+}
+
+main > * {
+    grid-column: text;
+    min-width: 0;
+    max-width: var(--content-max-width);
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+main > .rule {
+    grid-column: rules;
+    max-width: none;
+    justify-self: right;
+    width: 100%;
+    /* 规则行只占标签高度；收一点下边距让它贴近所标注的那段 */
+    margin-bottom: -4px;
+}
+
+/* 标题间距被上面的 margin:0 抹平，这里按栅格重算 */
+main > h2 {
+    margin-top: 26px;
+}
+
+main > h3 {
+    margin-top: 22px;
+}
+
+main > h4,
+main > h5,
+main > h6 {
+    margin-top: 18px;
+}
+
+main > hr {
+    width: 100%;
+}
+
+/* 表格撑满正文栏，并收窄单元格内边距，避免中文表头被挤成两行 */
+main table {
+    width: 100%;
+}
+
+main table td,
+main table th {
+    padding: 4px 12px;
+}
+
+/* ── 2. 规则标签 ─────────────────────────────────────────── */
+
+.rule {
+    --rule-font-mult: 0.8;
+
+    font-size: calc(1em * var(--rule-font-mult));
+    container-type: inline-size;
+    container-name: rule;
+}
+
+.rule-link {
+    display: block;
+    text-align: right;
+    padding-right: 14px;
+    /* 只在 <wbr> 处换行 */
+    word-break: keep-all;
+    white-space: nowrap;
+    text-decoration: none;
+    color: var(--rule-fg, #999) !important;
+}
+
+.rule-link:hover {
+    color: var(--fg) !important;
+}
+
+/* 被点开的规则加一个 » 指示，与标题的 :target 一致 */
+.rule:target .rule-link {
+    color: var(--fg) !important;
+}
+
+.rule:target .rule-link::before {
+    content: "»";
+    padding-right: 5px;
+}
+
+/* 左栏太窄时退化成 [*]，点它仍可拿到锚点 */
+@container rule (width < 18em) {
+    main > .rule a.rule-link span {
+        display: none;
+    }
+
+    main > .rule > a.rule-link::before {
+        content: "[*]";
+    }
+}
+
+/* ── 3. 语言切换 ─────────────────────────────────────────── */
+
+.lang-switch {
+    text-align: right;
+    font-size: 0.9em;
+    color: var(--rule-fg, #999);
+}
+
+.lang-switch a,
+.lang-switch span {
+    margin-left: 12px;
+    text-decoration: none;
+}
+
+.lang-switch a {
+    color: inherit;
+}
+
+.lang-switch a:hover {
+    color: var(--fg);
+    text-decoration: underline;
+}
+
+.lang-switch span {
+    font-weight: 600;
+    color: var(--fg);
+}
+
+/* ── 4. 提示块 ───────────────────────────────────────────── */
+
+.alert blockquote {
+    /* 竖向留白比正文略大，让左边条比文字高一点 */
+    padding: 8px 0 8px 20px;
+    margin: 12px 0;
+    border-inline-start: 4px solid transparent;
+    /* 去掉 mdBook 给引用块的背景与上下边框 */
+    background-color: inherit;
+    border-block-start: none;
+    border-block-end: none;
+}
+
+.alert-title {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    margin: 0 0 8px 0 !important;
+}
+
+.alert-title svg {
+    flex: none;
+    margin-right: 8px;
+    fill: currentColor;
+}
+
+.alert blockquote > :nth-child(2) {
+    margin-top: 0;
+}
+
+.alert blockquote > :last-child {
+    margin-bottom: 0;
+}
+
+.alert-note blockquote {
+    border-inline-start-color: var(--alert-note-color);
+}
+
+.alert-warning blockquote {
+    border-inline-start-color: var(--alert-warning-color);
+}
+
+.alert-example blockquote {
+    border-inline-start-color: var(--alert-example-color);
+}
+
+.alert-incomplete blockquote {
+    border-inline-start-color: var(--alert-incomplete-color);
+}
+
+.alert-stale blockquote {
+    border-inline-start-color: var(--alert-stale-color);
+}
+
+.alert-note .alert-title {
+    color: var(--alert-note-color);
+}
+
+.alert-warning .alert-title {
+    color: var(--alert-warning-color);
+}
+
+.alert-example .alert-title {
+    color: var(--alert-example-color);
+}
+
+.alert-incomplete .alert-title {
+    color: var(--alert-incomplete-color);
+}
+
+.alert-stale .alert-title {
+    color: var(--alert-stale-color);
+}
+
+/* ── 5. 各主题配色 ───────────────────────────────────────── */
+
+.light,
+.rust {
+    --alert-note-color: #0969da;
+    --alert-warning-color: #9a6700;
+    --alert-example-color: #8250df;
+    --alert-incomplete-color: #bc4c00;
+    --alert-stale-color: #6e6b5e;
+    --rule-fg: #999;
+}
+
+.coal,
+.navy,
+.ayu {
+    --alert-note-color: #4493f8;
+    --alert-warning-color: #d29922;
+    --alert-example-color: #ab7df8;
+    --alert-incomplete-color: #f0883e;
+    --alert-stale-color: #8b949e;
+    --rule-fg: #8b8b8b;
+}
