@@ -1,0 +1,127 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# ============================================================
+# 缩进与制表符
+# .editorconfig: indent_style = tab, indent_size = 4, tab_width = 4
+# ============================================================
+UseTab: ForIndentation
+IndentWidth: 4
+TabWidth: 4
+ContinuationIndentWidth: 4
+
+# ============================================================
+# 大括号换行风格
+# .editorconfig 中所有 cpp_new_line_before_open_brace_* 均为 new_line
+# 对应 Allman 风格（所有大括号均另起一行）[citation:1]
+# ============================================================
+BreakBeforeBraces: Allman
+
+# ============================================================
+# 空格设置
+# ============================================================
+# cpp_space_before_function_open_parenthesis = remove
+SpaceBeforeParens: ControlStatements
+# cpp_space_within_parameter_list_parentheses = false
+SpacesInParens: Never
+# cpp_space_within_control_flow_statement_parentheses = false
+SpacesInParensOptions:
+  InConditionalStatements: false
+  InEmptyParentheses: false
+  Other: false
+# cpp_space_before_inheritance_colon = true
+SpaceBeforeInheritanceColon: true
+# cpp_space_before_constructor_colon = true
+SpaceBeforeCtorInitializerColon: true
+# cpp_space_around_binary_operator = insert
+# cpp_space_around_assignment_operator = insert
+SpaceBeforeAssignmentOperators: true
+# cpp_space_within_initializer_list_braces = true
+Cpp11BracedListStyle: false
+# cpp_space_between_empty_braces = false
+SpaceInEmptyBraces: Never
+# cpp_space_before_empty_square_brackets = false
+SpaceBeforeSquareBrackets: false
+SpacesInSquareBrackets: false
+# cpp_space_after_comma = true (默认行为)
+SpacesBeforeTrailingComments: 1
+
+# ============================================================
+# 指针/引用对齐
+# .editorconfig: cpp_space_pointer_reference_alignment = left
+# ============================================================
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+DerivePointerAlignment: false
+
+# ============================================================
+# 访问修饰符
+# .editorconfig: cpp_indent_access_specifiers = false
+# ============================================================
+IndentAccessModifiers: false
+AccessModifierOffset: -4
+
+# ============================================================
+# case 标签
+# .editorconfig: cpp_indent_case_labels = true
+# ============================================================
+IndentCaseLabels: true
+
+# ============================================================
+# 预处理指令
+# .editorconfig: cpp_indent_preprocessor = none
+# ============================================================
+IndentPPDirectives: None
+
+# ============================================================
+# 命名空间缩进
+# .editorconfig: cpp_indent_namespace_contents = true
+# ============================================================
+NamespaceIndentation: All
+
+# ============================================================
+# goto 标签
+# .editorconfig: cpp_indent_goto_labels = one_left
+# ============================================================
+IndentGotoLabels: true
+
+# ============================================================
+# 构造函数初始化列表与继承
+# 冒号前有空格，且换行在冒号前
+# ============================================================
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+ConstructorInitializerIndentWidth: 4
+
+# ============================================================
+# 短语句不换行到单行
+# ============================================================
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortLambdasOnASingleLine: All
+
+# ============================================================
+# 空行保留
+# ============================================================
+MaxEmptyLinesToKeep: 1
+KeepEmptyLines:
+  AtEndOfFile: false
+  AtStartOfBlock: true
+  AtStartOfFile: true
+
+# ============================================================
+# 列宽（VS 默认不限制）
+# ============================================================
+ColumnLimit: 0
+
+# ============================================================
+# 其他
+# ============================================================
+SortIncludes: true
+FixNamespaceComments: true
+Standard: Latest
+ReflowComments: true
