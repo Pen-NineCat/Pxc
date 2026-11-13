@@ -4,9 +4,11 @@
 
 # Pxc 规范站点
 
+*[English](README.en.md)*
+
 本目录是 `Docs/book`，用 [mdBook](https://rust-lang.github.io/mdBook/) 渲染，站点风格取自
 [Rust Reference](https://doc.rust-lang.org/reference/)：左侧栏可折叠（本仓库关掉了编号）、
-正文左边距放规则 ID、提示块无背景只有左侧色条。
+正文左边距放规则 ID、提示块画成按类型着色的圆角包围框。
 
 ## 构建
 
@@ -108,4 +110,5 @@ Expression -> ExpressionWithoutBlock | ExpressionWithBlock
 
 - 站点代码与配置（`book.toml`、`theme/`、`tools/`、本文件）：**Apache-2.0**，见仓库根 `LICENSE.txt`
 - 规范正文（`src/` 下的 Markdown）：**[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)**
-- 第三方作品的署名与许可：见 `THIRD-PARTY-NOTICES.md`
+- 第三方作品的署名与许可：见 `THIRD-PARTY-NOTICES.md`（中文，本目录）与仓库根的
+  [THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)（英文）；两份内容需同步
