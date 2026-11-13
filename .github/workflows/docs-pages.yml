@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026-Present Pen-NineCat(PenNineCat)
+# https://github.com/Pen-NineCat
+
+# 构建 Docs/book 并发布到 GitHub Pages：https://pen-ninecat.github.io/Pxc/
+# 目前只支持手动触发（仓库 Actions 页面点 "Run workflow"），
+# PR / tag 触发的策略待定，加的时候在上面的 on: 里添即可。
+name: Docs / Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Pages 同一时刻只接受一次部署；排队中的那次保留，不取消正在跑的那次
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # 用预编译二进制而非 cargo install：几秒装完，且版本与本地一致。
+  # 升级时只改这一处（Docs/book/README.md 要求 mdBook >= 0.5）。
+  MDBOOK_VERSION: '0.5.4'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install mdBook ${{ env.MDBOOK_VERSION }}
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # book.toml 的 [preprocessor.pxc-spec] 调用 `python tools/pxc_spec.py`；
+      # ubuntu runner 预装 python-is-python3，不需要额外装 Python
+      - name: Build book
+        working-directory: Docs/book
+        run: mdbook build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: Docs/book/book
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+

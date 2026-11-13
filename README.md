@@ -25,5 +25,5 @@ Docs
 
 # Docs
 
-The Pxc language documentation is rendered with mdBook. The rendering setup and the third-party notices live in `Docs/book`; the source content is under `Docs/book/src`. The documentation site will be hosted on GitHub Pages in the future.
+The Pxc language documentation is rendered with mdBook. The rendering setup and the third-party notices live in `Docs/book`; the source content is under `Docs/book/src`. The site is built by the `.github/workflows/docs-pages.yml` workflow (manual trigger) and published to GitHub Pages at <https://pen-ninecat.github.io/Pxc/>.
 

@@ -9,9 +9,14 @@ language = "zh-Hans"
 src = "src"
 
 [output.html]
+# 站点发布在 https://pen-ninecat.github.io/Pxc/，即域名下的子路径。
+# 全站链接都是相对的，只有自动生成的 404.html 靠它拼静态资源路径；
+# 改仓库名或换自定义域名时要跟着改，否则 404 页会丢样式。
+site-url = "/Pxc/"
 additional-css = ["theme/pxc.css"]
 git-repository-url = "https://github.com/Pen-NineCat/Pxc"
-edit-url-template = "https://github.com/Pen-NineCat/Pxc/edit/main/Docs/book/src/{path}"
+# mdBook 0.5 的 {path} 已经是相对书根的路径（自带 `src/`），拼进模板时不要再补 src
+edit-url-template = "https://github.com/Pen-NineCat/Pxc/edit/master/Docs/book/{path}"
 # 正文用规则 ID 互相引用，章节号没有引用价值；双语下「1. 中文 / 2. English」
 # 的编号也不成立，所以关掉侧栏自动编号（改回 false 即恢复 Rust Reference 的编号外观）
 no-section-label = true
