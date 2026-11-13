@@ -6,11 +6,11 @@
 Pxc 规范站点的主题：只做三件事，其余交给 mdBook 默认主题。
 
 1. 版面改成三栏栅格，左栏放规则标签（`[storage.kinds]`）；
-2. 提示块去掉背景，只留 4px 左色条 + 带图标的彩色标题；
+2. 提示块渲染成带圆角的包围框，边框与底色按类型着色；
 3. 按主题给提示块配色，与 mdBook 自带的 5 套主题（light/rust/coal/navy/ayu）对齐。
 
-风格来源是 Rust Reference 的 theme/reference.css，但这里是重写而非拷贝：
-原版约 600 行，大半是 `:has(+ h2)` 一类的对位补丁，换字体就要重调。
+版面（三栏栅格 + 左栏规则标签）参考了 rust-lang/reference 的 theme/reference.css
+（MIT OR Apache-2.0）；提示块、语言切换与配色按本仓库需要另写。
 */
 
 /* ── 1. 版面 ─────────────────────────────────────────────── */
@@ -160,24 +160,46 @@ main table th {
     color: var(--fg);
 }
 
-/* ── 4. 提示块 ───────────────────────────────────────────── */
+/* ── 4. 提示块：圆角包围框 ───────────────────────────────── */
+
+/* 预处理器产出的结构是
+       <div class="alert alert-note"><blockquote><p class="alert-title">…</p>…</blockquote></div>
+   外层画框，内层引用块去掉 mdBook 给的背景、内边距与上下细边。 */
+.alert {
+    /* 边框与底色都由类型色算出来，深浅主题共用一套公式 */
+    border: 1px solid color-mix(in srgb, var(--alert-ink) 45%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--alert-ink) 7%, transparent);
+    padding: 12px 16px;
+    margin: 16px 0;
+}
 
 .alert blockquote {
-    /* 竖向留白比正文略大，让左边条比文字高一点 */
-    padding: 8px 0 8px 20px;
-    margin: 12px 0;
-    border-inline-start: 4px solid transparent;
-    /* 去掉 mdBook 给引用块的背景与上下边框 */
-    background-color: inherit;
-    border-block-start: none;
-    border-block-end: none;
+    margin: 0;
+    padding: 0;
+    /* 必须是 transparent：.alert 的底色本身带透明度，用 inherit 会在框内
+       把同一层半透明色再刷一遍，看起来像内外两层底色 */
+    background: transparent;
+    border: none;
+}
+
+/* 框内的代码块不再自己铺底色（mdBook 的高亮样式给 .hljs 铺了灰底，
+   叠在彩色框上会脏），直接透出框的底色；再补一圈内轮廓当边界，
+   否则代码块和正文之间就没有分界了。 */
+.alert .hljs {
+    background: transparent;
+}
+
+.alert pre {
+    border: 1px solid color-mix(in srgb, var(--alert-ink) 22%, transparent);
+    border-radius: 6px;
 }
 
 .alert-title {
     display: flex;
     align-items: center;
     font-weight: 600;
-    margin: 0 0 8px 0 !important;
+    color: var(--alert-ink);
 }
 
 .alert-title svg {
@@ -186,73 +208,61 @@ main table th {
     fill: currentColor;
 }
 
-.alert blockquote > :nth-child(2) {
-    margin-top: 0;
+/* 块内节奏交给相邻兄弟选择器：标题与正文之间只隔一次 10px */
+.alert blockquote > * {
+    margin-block: 0;
 }
 
-.alert blockquote > :last-child {
-    margin-bottom: 0;
+.alert blockquote > * + * {
+    margin-top: 10px;
 }
 
-.alert-note blockquote {
-    border-inline-start-color: var(--alert-note-color);
+/* 列表在框内要留出缩进，否则项目符号贴着圆角 */
+.alert blockquote ul,
+.alert blockquote ol {
+    padding-left: 20px;
 }
 
-.alert-warning blockquote {
-    border-inline-start-color: var(--alert-warning-color);
+/* 类型 -> 取色变量 */
+.alert-note {
+    --alert-ink: var(--ink-note);
 }
 
-.alert-example blockquote {
-    border-inline-start-color: var(--alert-example-color);
+.alert-warning {
+    --alert-ink: var(--ink-warning);
 }
 
-.alert-incomplete blockquote {
-    border-inline-start-color: var(--alert-incomplete-color);
+.alert-example {
+    --alert-ink: var(--ink-example);
 }
 
-.alert-stale blockquote {
-    border-inline-start-color: var(--alert-stale-color);
+.alert-incomplete {
+    --alert-ink: var(--ink-incomplete);
 }
 
-.alert-note .alert-title {
-    color: var(--alert-note-color);
-}
-
-.alert-warning .alert-title {
-    color: var(--alert-warning-color);
-}
-
-.alert-example .alert-title {
-    color: var(--alert-example-color);
-}
-
-.alert-incomplete .alert-title {
-    color: var(--alert-incomplete-color);
-}
-
-.alert-stale .alert-title {
-    color: var(--alert-stale-color);
+.alert-stale {
+    --alert-ink: var(--ink-stale);
 }
 
 /* ── 5. 各主题配色 ───────────────────────────────────────── */
 
 .light,
 .rust {
-    --alert-note-color: #0969da;
-    --alert-warning-color: #9a6700;
-    --alert-example-color: #8250df;
-    --alert-incomplete-color: #bc4c00;
-    --alert-stale-color: #6e6b5e;
+    --ink-note: #0969da;
+    --ink-warning: #9a6700;
+    --ink-example: #8250df;
+    --ink-incomplete: #bc4c00;
+    --ink-stale: #6e6b5e;
     --rule-fg: #999;
 }
 
 .coal,
 .navy,
 .ayu {
-    --alert-note-color: #4493f8;
-    --alert-warning-color: #d29922;
-    --alert-example-color: #ab7df8;
-    --alert-incomplete-color: #f0883e;
-    --alert-stale-color: #8b949e;
+    --ink-note: #4493f8;
+    --ink-warning: #d29922;
+    --ink-example: #ab7df8;
+    --ink-incomplete: #f0883e;
+    --ink-stale: #8b949e;
     --rule-fg: #8b8b8b;
 }

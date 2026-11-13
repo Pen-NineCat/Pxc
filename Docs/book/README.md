@@ -103,3 +103,9 @@ Expression -> ExpressionWithoutBlock | ExpressionWithBlock
 - 页面按「去掉语言目录后的相对路径」配对（`zh/storage.md` ↔ `en/storage.md`）；配对成功时
   页面右上角出现「中文 / English」切换，所以新增一章要两侧同时建同名文件。
 - 构建时若某种语言缺少另一种语言已有的规则 ID，预处理器会在 stderr 报一行汇总。
+
+## 许可证
+
+- 站点代码与配置（`book.toml`、`theme/`、`tools/`、本文件）：**Apache-2.0**，见仓库根 `LICENSE.txt`
+- 规范正文（`src/` 下的 Markdown）：**[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)**
+- 第三方作品的署名与许可：见 `THIRD-PARTY-NOTICES.md`
