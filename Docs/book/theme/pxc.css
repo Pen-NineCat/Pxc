@@ -223,6 +223,39 @@ main table th {
     padding-left: 20px;
 }
 
+/* ── 4.1 版本区别块：外框里套 Before / After 两个独立小框 ──── */
+
+/* 版本号外面那圈圆角边框：加粗描边，文字再加粗一级 */
+.alert-version-tag {
+    border: 2px solid color-mix(in srgb, var(--alert-ink) 55%, transparent);
+    border-radius: 8px;
+    padding: 0 7px;
+    margin-right: 8px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+/* 小框的画法与提示块内代码块的边框一致 */
+.alert-part {
+    border: 1px solid color-mix(in srgb, var(--alert-ink) 22%, transparent);
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.alert-part-title {
+    margin-block: 0;
+    font-weight: 600;
+    color: var(--alert-ink);
+}
+
+.alert-part > * {
+    margin-block: 0;
+}
+
+.alert-part > * + * {
+    margin-top: 8px;
+}
+
 /* 类型 -> 取色变量 */
 .alert-note {
     --alert-ink: var(--ink-note);
@@ -244,6 +277,10 @@ main table th {
     --alert-ink: var(--ink-stale);
 }
 
+.alert-version {
+    --alert-ink: var(--ink-version);
+}
+
 /* ── 5. 各主题配色 ───────────────────────────────────────── */
 
 .light,
@@ -253,6 +290,7 @@ main table th {
     --ink-example: #8250df;
     --ink-incomplete: #bc4c00;
     --ink-stale: #6e6b5e;
+    --ink-version: #1a7f37;
     --rule-fg: #999;
 }
 
@@ -264,5 +302,6 @@ main table th {
     --ink-example: #ab7df8;
     --ink-incomplete: #f0883e;
     --ink-stale: #8b949e;
+    --ink-version: #3fb950;
     --rule-fg: #8b8b8b;
 }

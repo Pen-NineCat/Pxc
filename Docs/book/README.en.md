@@ -73,6 +73,26 @@ Five kinds are supported: `NOTE`, `WARNING`, `EXAMPLE`, `INCOMPLETE` and `STALE`
 the language of the page (a Chinese page shows 「警告」, an English page shows "Warning"). A
 `> [!NOTE]` inside a fenced code block is left alone, so it can be used to demonstrate the syntax.
 
+### 2.1 Version difference blocks
+
+```markdown
+> [!VERSION-1.0]
+> Before Version:
+> How it worked before 1.0; several paragraphs are fine.
+>
+> After Version:
+> How it works from 1.0 on.
+```
+
+Renders as one outer box whose title shows the version `1.0` inside a bold rounded outline, holding two
+separately bordered parts titled "Before Version:" and "After Version:". The parts reuse the same border
+recipe as the code outline inside a block. The markers may be written in English
+(`Before Version:` / `After Version:`) or in Chinese; if one side is missing the build warns and falls
+back to a plain admonition.
+
+Use it only for major-version updates whose changes break existing code; the difference between major
+and minor versions belongs in the prose, not in another block kind.
+
 ### 3. Referring to another rule
 
 Write only the phrase in the prose, and put the rule identifier in the link definition:

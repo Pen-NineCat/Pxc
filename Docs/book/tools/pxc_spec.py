@@ -46,7 +46,7 @@ RULE_RE = re.compile(
 
 # `> [!KIND]` + 其后连续的引用行
 ADM_RE = re.compile(
-    r"(?m)^(?P<ind>[ ]*)> \[!(?P<kind>[A-Za-z][A-Za-z0-9_-]*)\][ \t]*\r?\n"
+    r"(?m)^(?P<ind>[ ]*)> \[!(?P<kind>[A-Za-z][A-Za-z0-9_.-]*)\][ \t]*\r?\n"
     r"(?P<body>(?:[ ]*>.*(?:\r?\n|$))+)"
 )
 
@@ -102,6 +102,27 @@ ALERTS = {
     "incomplete": ("incomplete", "该条目不完整", RENDER_INCOMPLETE),
     "stale": ("stale", "该条目可能过期", RENDER_STALE),
 }
+
+# 版本区别块：外框里套 Before / After 两个独立小框
+VERSION_ICON = (
+    '<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true">'
+    '<rect x="2.5" y="2.4" width="11" height="4.4" rx="1.4" fill="none" '
+    'stroke="currentColor" stroke-width="1.4"/>'
+    '<rect x="2.5" y="9.2" width="11" height="4.4" rx="1.4" fill="none" '
+    'stroke="currentColor" stroke-width="1.4"/></svg>'
+)
+
+# 版本号外面那圈边框由 CSS 画，正文里不再写方括号
+VERSION_TITLE = {"zh": "版本差异", "en": "Version differences"}
+
+# 两种语言各自的 Before / After 标题；解析时两种写法都认，方便互译
+PART_LABELS = {"zh": ("该版本之前：", "该版本之后："), "en": ("Before Version:", "After Version:")}
+
+PART_LABEL_RE = re.compile(
+    r"^[ \t]*>[ \t]*(?:Before Version:|After Version:|该版本之前：|该版本之后：)[ \t]*\r?\n?$"
+)
+
+VERSION_KIND_RE = re.compile(r"(?i)^version-(?P<version>.+)$")
 
 # 提示块标题按语言给一套，正文是哪种语言就显示哪种
 TITLES_EN = {
@@ -190,11 +211,84 @@ def render_rule(match):
     )
 
 
+def strip_blank_quote_lines(lines):
+    """去掉片段首尾那些只有 `>` 的空行，免得小框里多出空白。"""
+
+    def is_blank(line):
+        return re.fullmatch(r"[ \t]*>[ \t]*\r?\n?", line) is not None
+
+    while lines and is_blank(lines[0]):
+        lines.pop(0)
+    while lines and is_blank(lines[-1]):
+        lines.pop()
+    return lines
+
+
+def render_version(indent, version, body, lang):
+    """`> [!VERSION-1.0]` -> 外框 + Before / After 两个独立小框。"""
+    title = VERSION_TITLE.get(lang, VERSION_TITLE["en"])
+    before, after = PART_LABELS.get(lang, PART_LABELS["en"])
+
+    parts = []
+    current = None
+    for line in body.splitlines(keepends=True):
+        if PART_LABEL_RE.match(line):
+            is_before = ("Before" in line) or ("之前" in line)
+            current = [before if is_before else after, []]
+            parts.append(current)
+        elif current is not None:
+            current[1].append(line)
+
+    head = (
+        f'{indent}<div class="alert alert-version">\n'
+        f"{indent}\n"
+        f'{indent}> <p class="alert-title">{VERSION_ICON}'
+        f'<span class="alert-version-tag">{version}</span>{title}</p>\n'
+        f"{indent}>\n"
+    )
+    tail = f"{indent}\n{indent}</div>\n"
+
+    if len(parts) < 2:
+        warn(
+            f"版本块 [!VERSION-{version}] 里没找到 Before / After 标记"
+            f"（{before} / {after}），已按普通提示块渲染"
+        )
+        return head + body + tail
+
+    out = [head]
+    for label, content in parts:
+        content = strip_blank_quote_lines(content)
+        out.append(f'{indent}> <div class="alert-part">\n')
+        out.append(f"{indent}>\n")
+        out.append(f'{indent}> <p class="alert-part-title">{label}</p>\n')
+        out.append(f"{indent}>\n")
+        if content:
+            text = "".join(content)
+            if not text.endswith("\n"):
+                text += "\n"
+            out.append(text)
+            out.append(f"{indent}>\n")
+        out.append(f"{indent}> </div>\n")
+        out.append(f"{indent}>\n")
+    out.append(tail)
+    return "".join(out)
+
+
 def render_alert(match, lang):
-    """`> [!KIND]` 引用块 -> `<div class="alert alert-kind">`。"""
-    kind = match.group("kind").lower()
+    """`> [!KIND]` 引用块 -> `<div class="alert alert-kind">`。
+
+    `[!VERSION-x.y]` 是版本区别块，结构不一样，走 render_version。
+    """
+    raw_kind = match.group("kind")
+    version_match = VERSION_KIND_RE.match(raw_kind)
+    if version_match:
+        return render_version(
+            match.group("ind"), version_match.group("version"), match.group("body"), lang
+        )
+
+    kind = raw_kind.lower()
     if kind not in ALERTS:
-        warn(f"未知的提示块类型 [!{match.group('kind')}]，已原样保留")
+        warn(f"未知的提示块类型 [!{raw_kind}]，已原样保留")
         return match.group(0)
 
     css_class, title, icon = ALERTS[kind]
