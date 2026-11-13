@@ -8,8 +8,8 @@
 
 This directory is `Docs/book`. It is rendered with [mdBook](https://rust-lang.github.io/mdBook/) and
 styled after the [Rust Reference](https://doc.rust-lang.org/reference/): a collapsible sidebar
-(numbering is switched off here), rule identifiers in the left margin of the text column, and
-admonitions drawn as type-coloured rounded boxes.
+(numbering is switched off here), rule identifiers in the left margin of the text column,
+admonitions drawn as type-coloured rounded boxes, and tables drawn as three-line tables.
 
 ## Building
 
@@ -44,6 +44,11 @@ Docs/book/
 
 `book/` holds the build output and is excluded in `.gitignore`.
 
+`src/` is empty for now — the prose has not been written yet; the author splits the chapters out of the
+specification documents. Without `src/SUMMARY.md`, `mdbook build` fails outright (`failed to read
+src/SUMMARY.md`), so use the sandbox copy in `PersonalWorkaround/RefStyleResearch/demo` to look at the
+styling in the meantime.
+
 ## The three notations
 
 ### 1. Rule identifiers
@@ -69,9 +74,11 @@ a fence is safe.
 > There are only two roads across……
 ```
 
-Five kinds are supported: `NOTE`, `WARNING`, `EXAMPLE`, `INCOMPLETE` and `STALE`. The heading follows
-the language of the page (a Chinese page shows 「警告」, an English page shows "Warning"). A
-`> [!NOTE]` inside a fenced code block is left alone, so it can be used to demonstrate the syntax.
+Six kinds are supported: `NOTE`, `WARNING`, `EXAMPLE`, `INCOMPLETE` (incomplete entry), `EVOLVING`
+(entry still evolving) and `DEPRECATED-<version>` (deprecated API; the version goes in the marker, see
+§2.2). The heading follows the language of the page (a Chinese page shows 「警告」, an English page
+shows "Warning"). A `> [!NOTE]` inside a fenced code block is left alone, so it can be used to
+demonstrate the syntax.
 
 ### 2.1 Version difference blocks
 
@@ -93,6 +100,19 @@ back to a plain admonition.
 Use it only for major-version updates whose changes break existing code; the difference between major
 and minor versions belongs in the prose, not in another block kind.
 
+### 2.2 Deprecated APIs
+
+```markdown
+> [!DEPRECATED-1.2]
+> `ValueMoveConvert` is deprecated; use `MoveConstruct` instead.
+```
+
+The version goes in the marker and is carried into the heading: a Chinese page shows
+「弃用的 API（自 `1.2` 起）」and an English page shows “Deprecated API (since `1.2`)”. The version sits in
+the same bold rounded outline as in a version difference block — both express the same thing: which
+release this content belongs to. A bare `[!DEPRECATED]` makes the build warn and renders the heading
+without a version.
+
 ### 3. Referring to another rule
 
 Write only the phrase in the prose, and put the rule identifier in the link definition:
@@ -107,6 +127,27 @@ The preprocessor expands it into `storage.html#r-storage.kinds`. When the same i
 both editions, it points at the edition being read. If the target looks like a rule identifier but
 does not exist (usually a typo), the build reports it in one summary line and leaves the definition
 untouched, so a broken link that 404s on click is never produced silently.
+
+## How tables and code look
+
+Neither needs a notation of its own: the appearance lives in `theme/pxc.css`, and the prose is plain
+Markdown.
+
+A **table** renders as a three-line table: a grey rounded frame around it and one thin rule under the
+header row. The frame's top and bottom edges are the table's top and bottom rules, so the whole table
+has exactly three horizontal lines. No fill, no vertical lines, no zebra striping; headers are
+left-aligned like the body (a `| ---: |` column still right-aligns).
+
+| Storage duration | Where the object lives | Who creates it |
+| --- | --- | --- |
+| Automatic | At the declaration (on the stack, or inside the host object) | The compiler |
+| Managed | The collector heap | The collector |
+
+**Code**, inline and fenced, uses the **body font at body size** — not a monospace face, and not a
+smaller size. A fenced block is separated from the prose by its light fill, while blocks and inline
+code inside admonitions and tables get an outline instead of a fill (a translucent fill over a
+coloured box looks dirty). The only cost: trailing comments aligned with spaces in the source no
+longer line up in proportional text, so examples should stop aligning them in columns.
 
 ## Not implemented: grammar blocks and railroad diagrams
 

@@ -54,5 +54,5 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   渲染产物输出到 `book/fonts/`。
 - **mdBook 界面图标**：Font Awesome Free 6.x（图标部分 CC BY 4.0）；复制按钮的图标取自
   GitHub octicons（MIT）。版权声明以注释形式保留在 mdBook 生成的内联 SVG 中。
-- **提示块的五个图标**（注 / 警告 / 示例 / 该条目不完整 / 该条目可能过期）：本仓库自绘的几何
+- **提示块的六个图标**（注 / 警告 / 示例 / 该条目不完整 / 该条目演进中 / 弃用的 API）：本仓库自绘的几何
   图形，见 `tools/pxc_spec.py`，不涉及第三方素材。

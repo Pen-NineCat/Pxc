@@ -3,14 +3,16 @@
 /* https://github.com/Pen-NineCat */
 
 /*
-Pxc 规范站点的主题：只做三件事，其余交给 mdBook 默认主题。
+Pxc 规范站点的主题：只改版面和少数几种块，其余交给 mdBook 默认主题。
 
 1. 版面改成三栏栅格，左栏放规则标签（`[storage.kinds]`）；
 2. 提示块渲染成带圆角的包围框，边框与底色按类型着色；
-3. 按主题给提示块配色，与 mdBook 自带的 5 套主题（light/rust/coal/navy/ayu）对齐。
+3. 表格改成三线表，外面套一圈灰色圆角边框；
+4. 代码与行内代码不用等宽字体，与正文同一套；
+5. 按主题配色，与 mdBook 自带的 5 套主题（light/rust/coal/navy/ayu）对齐。
 
 版面（三栏栅格 + 左栏规则标签）参考了 rust-lang/reference 的 theme/reference.css
-（MIT OR Apache-2.0）；提示块、语言切换与配色按本仓库需要另写。
+（MIT OR Apache-2.0）；提示块、表格、语言切换与配色按本仓库需要另写。
 */
 
 /* ── 1. 版面 ─────────────────────────────────────────────── */
@@ -74,16 +76,6 @@ main > h6 {
 
 main > hr {
     width: 100%;
-}
-
-/* 表格撑满正文栏，并收窄单元格内边距，避免中文表头被挤成两行 */
-main table {
-    width: 100%;
-}
-
-main table td,
-main table th {
-    padding: 4px 12px;
 }
 
 /* ── 2. 规则标签 ─────────────────────────────────────────── */
@@ -166,10 +158,11 @@ main table th {
        <div class="alert alert-note"><blockquote><p class="alert-title">…</p>…</blockquote></div>
    外层画框，内层引用块去掉 mdBook 给的背景、内边距与上下细边。 */
 .alert {
-    /* 边框与底色都由类型色算出来，深浅主题共用一套公式 */
+    /* 边框与底色都由类型色算出来，深浅主题共用一套公式；
+       底色深浅由 --alert-tint 定，默认 7%，个别块要更深时单独覆盖 */
     border: 1px solid color-mix(in srgb, var(--alert-ink) 45%, transparent);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--alert-ink) 7%, transparent);
+    background: color-mix(in srgb, var(--alert-ink) var(--alert-tint, 7%), transparent);
     padding: 12px 16px;
     margin: 16px 0;
 }
@@ -195,6 +188,16 @@ main table th {
     border-radius: 6px;
 }
 
+/* 行内代码在框内同样没有底色可依，照代码块的样子补一圈同色细边框 */
+.alert :not(pre) > code {
+    border: 1px solid color-mix(in srgb, var(--alert-ink) 22%, transparent);
+    border-radius: 4px;
+    padding: 0.05em 0.3em;
+}
+
+/* 标题是 flex 行：图标、文字、标题里的版本号各自成为 flex 项。
+   需要保住行内空格的标题（弃用块的「弃用的 API（自 1.2 起）」）由预处理器
+   把整句包进 `<span class="alert-title-text">`，这里不用为它再加样式。 */
 .alert-title {
     display: flex;
     align-items: center;
@@ -223,16 +226,21 @@ main table th {
     padding-left: 20px;
 }
 
-/* ── 4.1 版本区别块：外框里套 Before / After 两个独立小框 ──── */
-
-/* 版本号外面那圈圆角边框：加粗描边，文字再加粗一级 */
+/* 标题里的版本号：加粗描边的小圆角框。版本区别块与弃用块共用这一套，
+   两处表达的是同一件事——这段内容属于哪个版本。 */
 .alert-version-tag {
     border: 2px solid color-mix(in srgb, var(--alert-ink) 55%, transparent);
     border-radius: 8px;
     padding: 0 7px;
-    margin-right: 8px;
     font-weight: 700;
     line-height: 1.5;
+}
+
+/* ── 4.1 版本区别块：外框里套 Before / After 两个独立小框 ──── */
+
+/* 版本区别块的标题是「[1.0] 版本差异」，版本号是 flex 项，得自带右边距 */
+.alert-version .alert-version-tag {
+    margin-right: 8px;
 }
 
 /* 小框的画法与提示块内代码块的边框一致 */
@@ -273,15 +281,96 @@ main table th {
     --alert-ink: var(--ink-incomplete);
 }
 
-.alert-stale {
-    --alert-ink: var(--ink-stale);
+/* 「该条目演进中」：青色，底色比默认深一点，正好落在 #e6f2f5 */
+.alert-evolving {
+    --alert-ink: var(--ink-evolving);
+    --alert-tint: 10%;
+}
+
+/* 「弃用的 API」：红色 */
+.alert-deprecated {
+    --alert-ink: var(--ink-deprecated);
 }
 
 .alert-version {
     --alert-ink: var(--ink-version);
 }
 
-/* ── 5. 各主题配色 ───────────────────────────────────────── */
+/* ── 5. 表格：三线表 + 圆角外框 ──────────────────────────── */
+
+/* 外框兼任三线表的顶线与底线，框内只再画一条栏目线（表头下沿），
+   整张表因此只有三条横线。框与线都是灰色，一律不铺底色。
+   灰是单独定义的 `--ink-neutral`，不从正文前景色兑，免得跟着正文字色跑。 */
+:root {
+    /* 外框沿用提示块外框那一档（45%）；栏目线取 30%——这套灰本身就比彩色
+       类型色浅，照框内描边的 22% 画会淡到看不出是三线表 */
+    --table-frame: color-mix(in srgb, var(--ink-neutral) 45%, transparent);
+    --table-rule: color-mix(in srgb, var(--ink-neutral) 30%, transparent);
+}
+
+.table-wrapper {
+    width: 100%;
+    border: 1px solid var(--table-frame);
+    border-radius: 8px;
+}
+
+main table {
+    width: 100%;
+    margin: 0;
+    /* 单元格之间不留空隙，横线才连得上 */
+    border-collapse: collapse;
+}
+
+/* 格子不再各画一个：竖线、表头底色、隔行底色一并去掉 */
+main table th,
+main table td {
+    padding: 5px 14px;
+    border: none;
+    background: transparent;
+}
+
+main table thead,
+main table thead tr,
+main table tbody tr:nth-child(2n) {
+    background: transparent;
+}
+
+main table thead tr {
+    border: none;
+}
+
+/* 三线表的第三条线：表头下沿。表头与正文一样左对齐，免得一列里出现
+   两种对齐方式（`---:` 写成靠右的列仍由 mdBook 的行内样式接管） */
+main table thead th {
+    border-bottom: 1px solid var(--table-rule);
+    font-weight: 600;
+    text-align: left;
+}
+
+/* 表格里的行内代码与提示块里一致：不铺底，改成同色描边 */
+main .table-wrapper :not(pre) > code {
+    background: transparent;
+    border: 1px solid var(--table-rule);
+    border-radius: 4px;
+    padding: 0.05em 0.3em;
+}
+
+/* ── 6. 代码与行内代码：与正文同一套字体与字号 ───────────── */
+
+/* 行内代码与围栏代码块都跟正文一样用正文字体、正文字号：辨识交给底色与描边，
+   再叠一层等宽字体或小一号的字号就只是噪音。
+   <pre> 的等宽字体来自浏览器的 UA 样式，围栏里的 <code> 是从 pre 继承下来的，
+   所以 pre 必须一起改——只压 code 时行内代码对了、围栏代码块仍是等宽的。
+   mdBook 的 `code { font-family: var(--mono-font) !important }` 带 !important，
+   这里同样得带；本站样式在它之后加载，同权重取后者。 */
+pre,
+code,
+.hljs {
+    font-family: inherit !important;
+    font-size: 1em;
+}
+
+/* ── 7. 各主题配色 ───────────────────────────────────────── */
 
 .light,
 .rust {
@@ -289,8 +378,11 @@ main table th {
     --ink-warning: #9a6700;
     --ink-example: #8250df;
     --ink-incomplete: #bc4c00;
-    --ink-stale: #6e6b5e;
+    --ink-evolving: #057d9b;
+    --ink-deprecated: #c92a5b;
     --ink-version: #1a7f37;
+    /* 三线表的灰，只给表格用，不属于任何提示块 */
+    --ink-neutral: #6e6b5e;
     --rule-fg: #999;
 }
 
@@ -301,7 +393,10 @@ main table th {
     --ink-warning: #d29922;
     --ink-example: #ab7df8;
     --ink-incomplete: #f0883e;
-    --ink-stale: #8b949e;
+    --ink-evolving: #4dc4d9;
+    --ink-deprecated: #e9638c;
     --ink-version: #3fb950;
+    --ink-neutral: #8b949e;
     --rule-fg: #8b8b8b;
 }
+

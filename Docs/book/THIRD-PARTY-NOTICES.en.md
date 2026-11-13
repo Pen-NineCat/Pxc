@@ -61,5 +61,5 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 - **mdBook interface icons**: Font Awesome Free 6.x (icons under CC BY 4.0); the copy-button icon
   comes from GitHub octicons (MIT). Their copyright notices are kept as comments in the inline SVGs
   mdBook generates.
-- **The five admonition icons** (note / warning / example / incomplete / stale): drawn in this
+- **The six admonition icons** (note / warning / example / incomplete / evolving / deprecated): drawn in this
   repository as plain geometry, see `tools/pxc_spec.py`. No third-party artwork is involved.

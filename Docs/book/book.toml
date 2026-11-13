@@ -5,7 +5,7 @@
 [book]
 title = "Pxc 语言规范 / The Pxc Language Reference"
 authors = ["Pen-NineCat"]
-language = "zh-CN"
+language = "zh-Hans"
 src = "src"
 
 [output.html]

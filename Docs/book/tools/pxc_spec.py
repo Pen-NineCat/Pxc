@@ -10,8 +10,10 @@
    锚点为 `#r-storage.kinds`。规则 ID 是引用锚点，不随章节重排而失效。
    中英两版同一条规则用同一个 ID（标识符本身是英文），所以 ID 是跨语言对齐的。
 
-2. 提示块 —— `> [!WARNING]` 起头的引用块，渲染成无背景、只有 4px 左色条的
-   alert。支持 NOTE / WARNING / EXAMPLE / INCOMPLETE / STALE 五种。
+2. 提示块 —— `> [!WARNING]` 起头的引用块，渲染成按类型着色的圆角包围框
+   （`<div class="alert">`），标题带图标。支持 NOTE / WARNING / EXAMPLE /
+   INCOMPLETE / EVOLVING / DEPRECATED 六种。
+   `> [!VERSION-x.y]` 是版本区别块，结构不同，由 render_version 单独展开。
 
 3. 跨文件规则引用 —— 链接定义的目标若是一个已存在的规则 ID
 
@@ -87,20 +89,32 @@ RENDER_INCOMPLETE = (
     'stroke-linecap="round"/></svg>'
 )
 
-RENDER_STALE = (
+# 该条目演进中：表盘，表示「还会变」
+RENDER_EVOLVING = (
     '<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true">'
     '<circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" stroke-width="1.5"/>'
     '<path d="M8 4.4V8l2.6 1.6" stroke="currentColor" stroke-width="1.5" '
     'stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 
+# 弃用的 API：垃圾桶
+RENDER_DEPRECATED = (
+    '<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true">'
+    '<path d="M3.4 4.8h9.2M6.6 4.8V3.4h2.8v1.4M5 4.8l.6 8.2h4.8L11 4.8" fill="none" '
+    'stroke="currentColor" stroke-width="1.3" stroke-linecap="round" '
+    'stroke-linejoin="round"/>'
+    '<path d="M6.9 7v3.6M9.1 7v3.6" fill="none" stroke="currentColor" stroke-width="1.3" '
+    'stroke-linecap="round"/></svg>'
+)
+
 # 写法 -> (CSS 类名, 标题, 图标)
 ALERTS = {
-    "note": ("note", "注", RENDER_NOTE),
+    "note": ("note", "注意", RENDER_NOTE),
     "warning": ("warning", "警告", RENDER_WARNING),
     "example": ("example", "示例", RENDER_EXAMPLE),
     "incomplete": ("incomplete", "该条目不完整", RENDER_INCOMPLETE),
-    "stale": ("stale", "该条目可能过期", RENDER_STALE),
+    "evolving": ("evolving", "该条目演进中", RENDER_EVOLVING),
+    "deprecated": ("deprecated", "弃用的 API", RENDER_DEPRECATED),
 }
 
 # 版本区别块：外框里套 Before / After 两个独立小框
@@ -124,13 +138,22 @@ PART_LABEL_RE = re.compile(
 
 VERSION_KIND_RE = re.compile(r"(?i)^version-(?P<version>.+)$")
 
+# 弃用的 API 也要在标题里写明是哪个版本弃用的：`[!DEPRECATED-1.2]`
+DEPRECATED_KIND_RE = re.compile(r"(?i)^deprecated-(?P<version>.+)$")
+
+DEPRECATED_TITLE = {"zh": "弃用的 API", "en": "Deprecated API"}
+
+# 版本号在标题里的位置：中文「弃用的 API（自 1.2 起）」，英文「Deprecated API (since 1.2)」
+DEPRECATED_VERSION_TEXT = {"zh": ("（自 ", " 起）"), "en": (" (since ", ")")}
+
 # 提示块标题按语言给一套，正文是哪种语言就显示哪种
 TITLES_EN = {
     "note": "Note",
     "warning": "Warning",
     "example": "Example",
     "incomplete": "Incomplete entry",
-    "stale": "May be outdated",
+    "evolving": "Entry evolving",
+    "deprecated": "Deprecated API",
 }
 
 LANG_LABEL = {"zh": "中文", "en": "English"}
@@ -274,10 +297,35 @@ def render_version(indent, version, body, lang):
     return "".join(out)
 
 
+def render_deprecated(indent, version, body, lang):
+    """`> [!DEPRECATED-1.2]` -> 标题里带「自 1.2 起」的弃用块。
+
+    版本号画法沿用版本区别块那圈圆角边框（`.alert-version-tag`），
+    因为这个块与版本区别块表达的是同一件事：这条内容属于哪个版本之后。
+    """
+    title = DEPRECATED_TITLE.get(lang, DEPRECATED_TITLE["en"])
+    prefix, suffix = DEPRECATED_VERSION_TEXT.get(lang, DEPRECATED_VERSION_TEXT["en"])
+    # 标题文字与版本号包在同一个 span 里：`.alert-title` 是 flex 容器，
+    # 裸文本节点会各自成为 flex 项，边界上的空格会被吃掉，「API (since…」
+    # 就会粘成「API(since…」。
+    return (
+        f'{indent}<div class="alert alert-deprecated">\n'
+        f"{indent}\n"
+        f'{indent}> <p class="alert-title">{RENDER_DEPRECATED}'
+        f'<span class="alert-title-text">{title}{prefix}'
+        f'<span class="alert-version-tag">{version}</span>{suffix}</span></p>\n'
+        f"{indent}\n"
+        f"{body}"
+        f"{indent}\n"
+        f'{indent}</div>\n'
+    )
+
+
 def render_alert(match, lang):
     """`> [!KIND]` 引用块 -> `<div class="alert alert-kind">`。
 
-    `[!VERSION-x.y]` 是版本区别块，结构不一样，走 render_version。
+    `[!VERSION-x.y]` 与 `[!DEPRECATED-x.y]` 的标题要带版本号，结构不一样，
+    分别走 render_version / render_deprecated。
     """
     raw_kind = match.group("kind")
     version_match = VERSION_KIND_RE.match(raw_kind)
@@ -286,7 +334,15 @@ def render_alert(match, lang):
             match.group("ind"), version_match.group("version"), match.group("body"), lang
         )
 
+    deprecated_match = DEPRECATED_KIND_RE.match(raw_kind)
+    if deprecated_match:
+        return render_deprecated(
+            match.group("ind"), deprecated_match.group("version"), match.group("body"), lang
+        )
+
     kind = raw_kind.lower()
+    if kind == "deprecated":
+        warn("提示块 [!DEPRECATED] 没写版本号，标题不带版本，应写成 [!DEPRECATED-1.2]")
     if kind not in ALERTS:
         warn(f"未知的提示块类型 [!{raw_kind}]，已原样保留")
         return match.group(0)
