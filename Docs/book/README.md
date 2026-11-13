@@ -110,5 +110,6 @@ Expression -> ExpressionWithoutBlock | ExpressionWithBlock
 
 - 站点代码与配置（`book.toml`、`theme/`、`tools/`、本文件）：**Apache-2.0**，见仓库根 `LICENSE.txt`
 - 规范正文（`src/` 下的 Markdown）：**[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)**
-- 第三方作品的署名与许可：见 `THIRD-PARTY-NOTICES.md`（中文，本目录）与仓库根的
-  [THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)（英文）；两份内容需同步
+- 第三方作品的署名与许可：本目录的 `THIRD-PARTY-NOTICES.md`（中文）与
+  [THIRD-PARTY-NOTICES.en.md](THIRD-PARTY-NOTICES.en.md)（英文），仓库根另有一份英文副本
+  （[THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)）；三份内容需一致

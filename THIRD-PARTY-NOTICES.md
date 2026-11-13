@@ -9,7 +9,8 @@ rendering. The rendered output `book/` is not committed, but **the notices below
 any distributed copy of that output**.
 
 *[中文版](Docs/book/THIRD-PARTY-NOTICES.md)* — the Chinese version lives next to the site sources.
-Keep the two in sync: changing one means changing the other.
+The same English text is also copied into `Docs/book/THIRD-PARTY-NOTICES.en.md`; all copies must stay
+identical, so changing one means changing the others.
 
 ## rust-lang/reference
 

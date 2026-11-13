@@ -4,7 +4,8 @@
 
 # 第三方声明
 
-*[English version](../../THIRD-PARTY-NOTICES.md)* —— 英文版放在仓库根。两份内容需同步：改一份就要改另一份。
+*[English version](THIRD-PARTY-NOTICES.en.md)* —— 英文版与本文件放在一起，仓库根另有一份同样的副本
+（[THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)）。所有副本内容需一致：改一份就要改其余几份。
 
 本目录的站点在构建与渲染时用到下列第三方作品。渲染产物 `book/` 不入库，但**分发渲染结果时
 应连同本文件一并提供**。

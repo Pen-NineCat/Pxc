@@ -119,6 +119,7 @@ Adding that appearance later means styling in `theme/pxc.css` plus a fence branc
 - Site code and configuration (`book.toml`, `theme/`, `tools/`, this file): **Apache-2.0**, see
   `LICENSE.txt` at the repository root
 - Specification text (Markdown under `src/`): **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)**
-- Third-party works and attribution: see
-  [THIRD-PARTY-NOTICES.md (English)](../../THIRD-PARTY-NOTICES.md) at the repository root, or
-  [第三方声明（中文）](THIRD-PARTY-NOTICES.md) next to these sources
+- Third-party works and attribution: [THIRD-PARTY-NOTICES.md (English)](THIRD-PARTY-NOTICES.en.md)
+  next to these sources, its [Chinese counterpart](THIRD-PARTY-NOTICES.md), or the copy at the
+  repository root ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)); the three must stay
+  identical
