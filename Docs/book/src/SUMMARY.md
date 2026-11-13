@@ -4,5 +4,9 @@
 
 # Pxc 语言规范
 
-- [中文](zh/introduction.md)
-- [English](en/introduction.md)
+- [中文]()
+  - [介绍](zh/introduction.md)
+  - [属性](zh/attributes.md)
+- [English]()
+  - [Introduction](en/introduction.md)
+  - [Attributes](en/attributes.md)
