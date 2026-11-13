@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
-<!-- Copyright(c) 2026-Present Pen-NineCat(Pen-NineCat) -->
+<!-- Copyright(c) 2026-Present Pen-NineCat(PenNineCat) -->
 <!-- https://github.com/Pen-NineCat -->
 
 # 介绍
@@ -21,7 +21,7 @@ r[introduction.overview]
 
 > [!EVOLVING]
 >
->此书尚未完成，并语言仍然在持续演进中。有关本书未记录的内容，请参阅项目的[Issues](https://github.com/Pen-NineCat/Pxc/issues)列表中，带有`Pxc reference`标签的issue。
+>此书尚未完成，并且语言仍然在持续演进中。有关本书未记录的内容，请参阅项目的[Issues](https://github.com/Pen-NineCat/Pxc/issues)列表中，带有`Pxc reference`标签的issue。
 
 r[introduction.read-rule]
 
@@ -48,7 +48,7 @@ r[introduction.read-symbol]
 
 ### 信息块
 
-Example 信息块代表
+Example 信息块代表当前内容的一个示例，供理解与参考。
 
 > [!EXAMPLE]
 >

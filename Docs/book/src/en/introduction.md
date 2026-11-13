@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
-<!-- Copyright(c) 2026-Present Pen-NineCat(Pen-NineCat) -->
+<!-- Copyright(c) 2026-Present Pen-NineCat(PenNineCat) -->
 <!-- https://github.com/Pen-NineCat -->
 
 # Introduction
@@ -48,7 +48,7 @@ Like other technical documents and websites, such as `cpp reference`, `rust refe
 
 ### Admonitions
 
-An Example admonition stands for
+An Example admonition stands for an example of the current content, to aid understanding and for reference.
 
 > [!EXAMPLE]
 >
