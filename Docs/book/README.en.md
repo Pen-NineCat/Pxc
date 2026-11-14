@@ -146,11 +146,18 @@ left-aligned like the body (a `| ---: |` column still right-aligns).
 | Automatic | At the declaration (on the stack, or inside the host object) | The compiler |
 | Managed | The collector heap | The collector |
 
-**Code**, inline and fenced, uses the **body font at body size** — not a monospace face, and not a
-smaller size. A fenced block is separated from the prose by its light fill, while blocks and inline
-code inside admonitions and tables get an outline instead of a fill (a translucent fill over a
-coloured box looks dirty). The only cost: trailing comments aligned with spaces in the source no
-longer line up in proportional text, so examples should stop aligning them in columns.
+**Fonts**: the prose uses the system UI stack (Segoe UI on Windows, SF on macOS) and code uses a
+monospace stack (`SF Mono` → `JetBrains Mono` → `Fira Code` → `Consolas` → `Liberation Mono` …)
+instead of mdBook's bundled Open Sans and Source Code Pro; both stacks live in §0 of
+`theme/pxc.css`. The split is not cosmetic: in a proportional face `>` is centred on the cap height,
+0.094 em above the `-` that sits on the x-height (1.5 px at 16 px), so `->` looks like it floats; a
+monospace face puts both glyphs on one axis with a fixed advance, which is what `->`, `::` and
+space-aligned comments are drawn for.
+
+**Code**, inline and fenced, is set in the monospace face at **body size** — the size is not
+reduced. A fenced block is separated from the prose by its light fill, while blocks and inline code
+inside admonitions and tables get an outline instead of a fill (a translucent fill over a coloured
+box looks dirty).
 
 ## Search
 

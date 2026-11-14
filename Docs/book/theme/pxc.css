@@ -8,7 +8,7 @@ Pxc 规范站点的主题：只改版面和少数几种块，其余交给 mdBook
 1. 版面改成三栏栅格，左栏放规则标签（`[storage.kinds]`）；
 2. 提示块渲染成带圆角的包围框，边框与底色按类型着色；
 3. 表格改成三线表，外面套一圈灰色圆角边框；
-4. 代码与行内代码不用等宽字体，与正文同一套；
+4. 正文换成系统 UI 字体栈、代码换成等宽栈，两套都写在 §0；
 5. 按主题配色，与 mdBook 自带的 5 套主题（light/rust/coal/navy/ayu）对齐；
 6. 规则标签放不下时退化成 `[*]`：整栏都放不下由容器查询判断，个别超长的 ID
    由 theme/rule-fit.js 逐条判断（CSS 没有测量文本溢出的能力）。
@@ -16,6 +16,32 @@ Pxc 规范站点的主题：只改版面和少数几种块，其余交给 mdBook
 版面（三栏栅格 + 左栏规则标签）参考了 rust-lang/reference 的 theme/reference.css
 （MIT OR Apache-2.0）；提示块、表格、语言切换与配色按本仓库需要另写。
 */
+
+/* ── 0. 字体 ─────────────────────────────────────────────── */
+
+/* 两套字体栈各取本机最好的那一个，不再沿用 mdBook 自带的 Open Sans / Source Code Pro：
+   正文用系统 UI 字体，代码段用等宽字体。两件事分开选，是因为它们的要求正好相反——
+   正文要「本机读起来最顺」，代码要固定字宽与配对字形（`->`、用空格对齐的注释列）。
+   代码栈尾必须补通用 `monospace`：上面的候选一个都没装时，浏览器才不会退回默认的比例字体。 */
+:root {
+    /* Win = Segoe UI，macOS/iOS = SF，Android = Roboto，Linux = 发行版默认；
+       后面几族中文放在 UI 字体之后，保证中文不会落到不带汉字的字面上 */
+    --pxc-text-font:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue",
+        Helvetica, Arial, sans-serif;
+    /* 本机装了哪个等宽字体就用哪个；末两族负责代码里的中文注释 */
+    --pxc-code-font:
+        "SF Mono", "JetBrains Mono", "Fira Code", Consolas,
+        "Liberation Mono", Menlo, Courier, "PingFang SC", "Microsoft YaHei",
+        monospace;
+}
+
+/* mdBook 把正文字体写在 html 上（`html { font-family: "Open Sans", sans-serif }`），
+   这里同样从 html 改，下面的所有元素跟着继承 */
+html {
+    font-family: var(--pxc-text-font);
+}
 
 /* ── 1. 版面 ─────────────────────────────────────────────── */
 
@@ -397,19 +423,34 @@ main .table-wrapper :not(pre) > code {
     padding: 0.05em 0.3em;
 }
 
-/* ── 6. 代码与行内代码：与正文同一套字体与字号 ───────────── */
+/* ── 6. 代码与行内代码：等宽栈，字号仍取正文大小 ─────────── */
 
-/* 行内代码与围栏代码块都跟正文一样用正文字体、正文字号：辨识交给底色与描边，
-   再叠一层等宽字体或小一号的字号就只是噪音。
+/* 字体取 `--pxc-code-font`（等宽），字号仍是正文字号：代码要靠固定字宽与配对字形来读，
+   `->`、`::`、用空格对齐的注释列全是 ASCII 排出来的。比例字体里 `>` 对齐的是大写字母
+   中线，比 `-` 所在的小写主体中线高 0.094em（16px 下 1.5px），`->` 会像浮在半空——
+   这是 §0 里正文与代码分开选字体的直接原因。
    <pre> 的等宽字体来自浏览器的 UA 样式，围栏里的 <code> 是从 pre 继承下来的，
-   所以 pre 必须一起改——只压 code 时行内代码对了、围栏代码块仍是等宽的。
+   所以 pre 必须一起改——只压 code 时行内代码对了、围栏代码块仍是别的字体。
    mdBook 的 `code { font-family: var(--mono-font) !important }` 带 !important，
    这里同样得带；本站样式在它之后加载，同权重取后者。 */
 pre,
 code,
 .hljs {
-    font-family: inherit !important;
+    font-family: var(--pxc-code-font) !important;
     font-size: 1em;
+}
+
+/* 键盘按键（mdBook 自带的快捷键弹层）跟代码用同一套字体 */
+kbd {
+    font-family: var(--pxc-code-font);
+}
+
+/* 超宽的代码行改为横向滚动，而不是被右边缘裁掉。
+   mdBook 只给带 `.hljs` 的块设了 `overflow-x: auto`，而本站的围栏多是 `language-pxc`
+   （highlight.js 不认识这门语言），拿不到那个类，长行于是静默截断——
+   attributes 页那条 118 字符的 `[[AttributeDescription(...)]]` 就是例子。 */
+pre {
+    overflow-x: auto;
 }
 
 /* ── 7. 各主题配色 ───────────────────────────────────────── */
