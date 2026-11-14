@@ -15,7 +15,8 @@ src = "src"
 site-url = "/Pxc/"
 additional-css = ["theme/pxc.css"]
 # 规则标签放不下时换成 [*]：CSS 量不了文本溢出，逐条的判断放在这里（见 theme/rule-fit.js）
-additional-js = ["theme/rule-fit.js"]
+# cjk-search.js 接管索引加载，让搜索认得中文（mdBook 的构建期分词不切中文，见 theme/cjk-search.js）
+additional-js = ["theme/rule-fit.js", "theme/cjk-search.js"]
 git-repository-url = "https://github.com/Pen-NineCat/Pxc"
 # mdBook 0.5 的 {path} 已经是相对书根的路径（自带 `src/`），拼进模板时不要再补 src
 edit-url-template = "https://github.com/Pen-NineCat/Pxc/edit/master/Docs/book/{path}"
