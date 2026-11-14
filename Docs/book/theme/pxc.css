@@ -9,7 +9,9 @@ Pxc 规范站点的主题：只改版面和少数几种块，其余交给 mdBook
 2. 提示块渲染成带圆角的包围框，边框与底色按类型着色；
 3. 表格改成三线表，外面套一圈灰色圆角边框；
 4. 代码与行内代码不用等宽字体，与正文同一套；
-5. 按主题配色，与 mdBook 自带的 5 套主题（light/rust/coal/navy/ayu）对齐。
+5. 按主题配色，与 mdBook 自带的 5 套主题（light/rust/coal/navy/ayu）对齐；
+6. 规则标签放不下时退化成 `[*]`：整栏都放不下由容器查询判断，个别超长的 ID
+   由 theme/rule-fit.js 逐条判断（CSS 没有测量文本溢出的能力）。
 
 版面（三栏栅格 + 左栏规则标签）参考了 rust-lang/reference 的 theme/reference.css
 （MIT OR Apache-2.0）；提示块、表格、语言切换与配色按本仓库需要另写。
@@ -32,8 +34,12 @@ Pxc 规范站点的主题：只改版面和少数几种块，其余交给 mdBook
 main {
     display: grid;
     grid-template-columns:
-        [rules] minmax(36px, 1fr)
-        [text] auto
+        /* 左栏放规则标签。下限 20rem（mdBook 的 :root 是 62.5%，即 200px）
+           要容得下一个不折行的 ID；它只在 ≥1290px 视口上生效，见 §8 末尾的媒体查询。 */
+        [rules] minmax(20rem, 1fr)
+        /* 正文列必须定宽。写成 auto 时列宽由内容撑开：长页撑到 750px、
+           只有一句话的短页（module-unit）会塌成内容宽度，整块正文被推到中间。 */
+        [text] minmax(0, var(--content-max-width))
         [margin] minmax(36px, 1fr);
     margin: 0 !important;
     padding: 0 !important;
@@ -44,6 +50,8 @@ main {
 
 main > * {
     grid-column: text;
+    /* max-width 量的是外边界，否则带内边距的子元素（.alert）会顶出正文列 */
+    box-sizing: border-box;
     min-width: 0;
     max-width: var(--content-max-width);
     margin-top: 0;
@@ -80,6 +88,12 @@ main > hr {
 
 /* ── 2. 规则标签 ─────────────────────────────────────────── */
 
+:root {
+    /* 「上一页」箭头浮层的宽度（§8 收到 4rem）+ 与规则标签之间的间距。
+       mdBook 的 :root 是 62.5%，1rem = 10px，所以这里是 40px + 16px。 */
+    --nav-gutter: calc(4rem + 1.6rem);
+}
+
 .rule {
     --rule-font-mult: 0.8;
 
@@ -91,16 +105,27 @@ main > hr {
 .rule-link {
     display: block;
     text-align: right;
+    /* 右侧留白；左侧让出「上一页」箭头的命中区，标签不钻到它下面 */
     padding-right: 14px;
-    /* 只在 <wbr> 处换行 */
-    word-break: keep-all;
+    padding-left: var(--nav-gutter);
+    /* 单行显示，不在 <wbr> 处折行：放不下的由下面「2.1 逐条的 [*]」换成 [*]  */
     white-space: nowrap;
+    /* 没有 JS 时没人加 .rule--tight，超长标签会被裁掉——宁可裁，也不要压到箭头上 */
+    overflow: hidden;
     text-decoration: none;
     color: var(--rule-fg, #999) !important;
 }
 
 .rule-link:hover {
     color: var(--fg) !important;
+}
+
+/* 预处理器在每个点前面插了 <wbr>，方便窄栏里断成两行；但这里要的是「要么整条单行、
+   要么退化成 [*]」，换行点必须关掉。
+   注意 Chromium 即使在 white-space: nowrap 之下也会在 <wbr> 处断行，光靠 nowrap
+   挡不住，得把元素本身去掉（它一旦不渲染，就不再产生断行机会）。 */
+main > .rule wbr {
+    display: none;
 }
 
 /* 被点开的规则加一个 » 指示，与标题的 :target 一致 */
@@ -113,8 +138,12 @@ main > hr {
     padding-right: 5px;
 }
 
-/* 左栏太窄时退化成 [*]，点它仍可拿到锚点 */
-@container rule (width < 18em) {
+/* 左栏被压到连一个 ID 都放不下时，整页一起退化成 [*]（容器查询只能按栏宽判断）。
+   换算：标签可用宽度 = 左栏宽 − --nav-gutter(56px) − padding-right(14px)，20rem 左栏下
+   就是 200 − 70 = 130px。书里最短的标签 [attribute.class] 实测 92px，所以左栏窄于
+   70 + 92 = 162px 时一个都放不下；162px ÷ 0.8em 字号(12.8px) = 12.7em。
+   有 JS 时逐条判断（§2.1）会得出同样结论，这条查询负责没有 JS 时也不裁字。 */
+@container rule (width < 12.7em) {
     main > .rule a.rule-link span {
         display: none;
     }
@@ -122,6 +151,19 @@ main > hr {
     main > .rule > a.rule-link::before {
         content: "[*]";
     }
+}
+
+/* ── 2.1 逐条的 [*]：只让放不下的那几条退出 ───────────────── */
+
+/* CSS 判断不了「这段文字有没有溢出」（container-type 一加，尺寸就与内容无关了），
+   所以个别超长的 ID 由 theme/rule-fit.js 量出 scrollWidth > clientWidth 之后
+   给 .rule 加 .rule--tight。两态与上面的栏宽查询共用同一套选择器，样式一致。 */
+.rule--tight .rule-link span {
+    display: none;
+}
+
+.rule--tight .rule-link::before {
+    content: "[*]";
 }
 
 /* ── 3. 语言切换 ─────────────────────────────────────────── */
@@ -398,5 +440,38 @@ code,
     --ink-version: #3fb950;
     --ink-neutral: #8b949e;
     --rule-fg: #8b8b8b;
+}
+
+/* ── 8. 「上一页 / 下一页」箭头 ───────────────────────────── */
+
+/* mdBook 的 .nav-chapters 是一条 min-width:90px / max-width:150px、上下贴边的
+   position:fixed 命中区，里面只画一个箭头，却把正文左侧的规则栏盖掉 90px，
+   逼得规则标签只能用 [*]。这里把命中区收到箭头本身那么宽（4rem = 40px）。 */
+.nav-chapters {
+    min-width: 0;
+    max-width: none;
+    width: 4rem;
+}
+
+/* 高亮跟着收到箭头本身，不再刷一整条 90px 宽的竖带 */
+.nav-chapters:hover {
+    background-color: transparent;
+}
+
+.nav-chapters:hover .fa-svg {
+    background-color: var(--theme-hover);
+    border-radius: 6px;
+}
+
+/* §1 的左栏下限 20rem 只在「不压正文」的宽度上保留：
+   20rem(左栏) + 750px(正文) + 36px(右留白) = 986px 页面宽，加 300px 侧栏约 1290px 视口。
+   比这更窄时宁可整页退化成 [*]，也不去挤正文列。 */
+@media only screen and (max-width: 1290px) {
+    main {
+        grid-template-columns:
+            [rules] minmax(36px, 1fr)
+            [text] minmax(0, var(--content-max-width))
+            [margin] minmax(36px, 1fr);
+    }
 }
 
