@@ -38,7 +38,10 @@ Docs/book/
 │  ├─ SUMMARY.md      # table of contents: two top-level trees, 中文 / English
 │  ├─ zh/             # Chinese (source edition)
 │  └─ en/             # English (translation)
-├─ theme/pxc.css      # site theme, the only stylesheet in the book
+├─ theme/
+│  ├─ pxc.css         # the only stylesheet in the book
+│  ├─ rule-fit.js     # swaps rule labels that do not fit for [*]
+│  └─ cjk-search.js   # takes over the search index so Chinese is searchable
 └─ tools/pxc_spec.py  # preprocessor: rule IDs / admonitions / rule refs / language switch
 ```
 
@@ -148,6 +151,37 @@ smaller size. A fenced block is separated from the prose by its light fill, whil
 code inside admonitions and tables get an outline instead of a fill (a translucent fill over a
 coloured box looks dirty). The only cost: trailing comments aligned with spaces in the source no
 longer line up in proportional text, so examples should stop aligning them in columns.
+
+## Search
+
+mdBook builds the search index at **build time**, and its tokenizer only knows whitespace and
+punctuation: a whole run of Chinese becomes one token and is then dropped by the trimmer. Barely any
+token in the index contains Chinese (when this was written: 30 sections, 695 tokens, of which 2
+contain Chinese — the same leftover embedded in English text), so 「存储期」 finds nothing in
+「元数据存储期」.
+
+`theme/cjk-search.js` patches this in the browser. The searcher touches the index through one call,
+`elasticlunr.Index.load(index).search(term, options)`, so the script swaps `Index.load` for its own
+implementation and works from the raw text kept in the index (`documentStore.docs`: title / body /
+breadcrumbs). **No mdBook change, no build artefact change, no build-time dependency.**
+
+- Chinese is split into **adjacent two-character terms** (a one-character query stays one character);
+  English is split into whole words. Every term has to appear in the same section for it to match
+  (matching `[output.html.search] use-boolean-and = true`).
+- Scores are weighted per field — title 4, breadcrumbs and body 1 — and results in the language of
+  the current page are doubled. The two editions are paired, so without that doubling a Chinese page
+  would show the English copy first for a query like `ReflectState`.
+- The teaser is the 24 / 80 characters around the hit: the searcher's teaser counts **spaces**, and a
+  Chinese section is a single "word", so an untrimmed body would print in full on every result line.
+
+Known limits:
+
+- No match highlighting inside the teaser (the body is escaped by the searcher before it is rendered,
+  so an `<em>` cannot be injected); the `?highlight=` marking on the page itself is unaffected.
+- No typo tolerance: it matches literally, unlike fzf's out-of-order matching.
+- A `?search=` deep link has a millisecond-scale race on first load: that one run may still use
+  mdBook's own index; a reload fixes it.
+- To drop the behaviour, remove `cjk-search.js` from `additional-js`.
 
 ## Not implemented: grammar blocks and railroad diagrams
 
