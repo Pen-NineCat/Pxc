@@ -1,0 +1,105 @@
+- code   : E0001
+  name   : ExpectedModuleDecl
+  level  : Error
+  message: "The first declaration in module unit must be module declaration"
+  args   : [string]
+- code   : E0002
+  name   : UndefinedModuleIdent
+  level  : Error
+  message: "Undefined module identification {}"
+  args   : [string]
+- code   : E0003
+  name   : ExpectSemi
+  level  : Error
+  message: "Please input ;"
+  args   : []
+- code   : E0004
+  name   : UndefinedFunctionIdent
+  level  : Error
+  message: "Undefined function identification {}" 
+  args   : [string]
+- code   : E0005
+  name   : ExpectCharacterNotFound
+  level  : error
+  message: "Expect character: {} but get {}"
+  args   : [string,string]
+- code   : E0006
+  name   : UndefinedSymbol
+  level  : error
+  message: "Undefined symbol {}"
+  args   : [string]
+- code   : E0007
+  name   : ExclusiveTypeQualifiers
+  level  : error
+  message: "Exclusive type qualifiers with {} and {}"
+  args   : [string,string]
+- code   : E0008
+  name   : DuplicateTypeQualifiers
+  level  : error
+  message: "Duplicate type qualifiers with {}"
+  args   : [string]
+- code   : E0009
+  name   : UndefinedCharcter
+  level  : error
+  message: "Undefined charcter {}"
+  args   : [string]
+- code   : E00010
+  name   : UnterminatedStringLiteral
+  level  : error
+  message: "Unterminated string literal"
+  args   : []
+- code   : E00011
+  name   : PleaseInputDecl
+  level  : error
+  message: "Please input declaration"
+  args   : []
+- code   : E00012
+  name   : ModuleMustBeAtHeader
+  level  : error
+  message: "module declaration must be first declaration"
+  args   : []
+- code   : E00013
+  name   : PleaseInputIdent
+  level  : error
+  message: "Please input identification"
+  args   : []
+- code   : E00014
+  name   : UnterminatedCharLiteral
+  level  : error
+  message: "Unterminated string literal"
+  args   : []
+- code   : E00015
+  name   : InvalidCharCodepoint
+  level  : error
+  message: "Invalid character codepoint"
+  args   : []
+- code   : E00016
+  name   : InvalidEscapeSequences
+  level  : error
+  message: "Invalid escape sequences"
+  args   : []
+- code   : E00017
+  name   : UnterminatedCommentLiteral
+  level  : error
+  message: "Unterminated comment literal"
+  args   : []
+- code   : E00018
+  name   : InvalidNumericSeparatorsPosition
+  level  : error
+  message: "Invalid number separators position"
+  args   : []
+- code   : E00019
+  name   : InvalidNumericLiteralPosition
+  level  : error
+  message: "Invalid number literal position"
+  args   : []
+- code   : E00020
+  name   : InvalidNonASCIICodepointPosition
+  level  : error
+  message: "Non ASCII codepoint can't used to identification or operator"
+  args   : []
+- code   : E00021
+  name   : ImportMustBeAtHeader
+  level  : error
+  message: "Import declaration must be before other non-import declaration"
+  args   : []

@@ -24,3 +24,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/FC)
 else()
 endif()
+
+add_subdirectory(Code/PxcCommon)
+add_subdirectory(Code/PLang)
+
+if(PXC_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(Code/Tests)
+endif()
