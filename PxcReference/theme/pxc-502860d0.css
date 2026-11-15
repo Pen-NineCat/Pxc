@@ -1,0 +1,518 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright(c) 2026-Present Pen-NineCat(PenNineCat) */
+/* https://github.com/Pen-NineCat */
+
+/*
+Pxc 规范站点的主题：只改版面和少数几种块，其余交给 mdBook 默认主题。
+
+1. 版面改成三栏栅格，左栏放规则标签（`[storage.kinds]`）；
+2. 提示块渲染成带圆角的包围框，边框与底色按类型着色；
+3. 表格改成三线表，外面套一圈灰色圆角边框；
+4. 正文换成系统 UI 字体栈、代码换成等宽栈，两套都写在 §0；
+5. 按主题配色，与 mdBook 自带的 5 套主题（light/rust/coal/navy/ayu）对齐；
+6. 规则标签放不下时退化成 `[*]`：整栏都放不下由容器查询判断，个别超长的 ID
+   由 theme/rule-fit.js 逐条判断（CSS 没有测量文本溢出的能力）。
+
+版面（三栏栅格 + 左栏规则标签）参考了 rust-lang/reference 的 theme/reference.css
+（MIT OR Apache-2.0）；提示块、表格、语言切换与配色按本仓库需要另写。
+*/
+
+/* ── 0. 字体 ─────────────────────────────────────────────── */
+
+/* 两套字体栈各取本机最好的那一个，不再沿用 mdBook 自带的 Open Sans / Source Code Pro：
+   正文用系统 UI 字体，代码段用等宽字体。两件事分开选，是因为它们的要求正好相反——
+   正文要「本机读起来最顺」，代码要固定字宽与配对字形（`->`、用空格对齐的注释列）。
+   代码栈尾必须补通用 `monospace`：上面的候选一个都没装时，浏览器才不会退回默认的比例字体。 */
+:root {
+    /* Win = Segoe UI，macOS/iOS = SF，Android = Roboto，Linux = 发行版默认；
+       后面几族中文放在 UI 字体之后，保证中文不会落到不带汉字的字面上 */
+    --pxc-text-font:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue",
+        Helvetica, Arial, sans-serif;
+    /* 本机装了哪个等宽字体就用哪个；末两族负责代码里的中文注释 */
+    --pxc-code-font:
+        "SF Mono", "JetBrains Mono", "Fira Code", Consolas,
+        "Liberation Mono", Menlo, Courier, "PingFang SC", "Microsoft YaHei",
+        monospace;
+}
+
+/* mdBook 把正文字体写在 html 上（`html { font-family: "Open Sans", sans-serif }`），
+   这里同样从 html 改，下面的所有元素跟着继承 */
+html {
+    font-family: var(--pxc-text-font);
+}
+
+/* ── 1. 版面 ─────────────────────────────────────────────── */
+
+/* 让栅格能用到窗口全宽，正文宽度由 main 的居中列决定 */
+.page,
+.content {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+#menu-bar,
+#mdbook-menu-bar {
+    margin-left: 0;
+}
+
+main {
+    display: grid;
+    grid-template-columns:
+        /* 左栏放规则标签。下限 20rem（mdBook 的 :root 是 62.5%，即 200px）
+           要容得下一个不折行的 ID；它只在 ≥1290px 视口上生效，见 §8 末尾的媒体查询。 */
+        [rules] minmax(20rem, 1fr)
+        /* 正文列必须定宽。写成 auto 时列宽由内容撑开：长页撑到 750px、
+           只有一句话的短页（module-unit）会塌成内容宽度，整块正文被推到中间。 */
+        [text] minmax(0, var(--content-max-width))
+        [margin] minmax(36px, 1fr);
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    /* 栅格之间不会发生外边距折叠，所以用行距代替 */
+    row-gap: 16px;
+}
+
+main > * {
+    grid-column: text;
+    /* max-width 量的是外边界，否则带内边距的子元素（.alert）会顶出正文列 */
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: var(--content-max-width);
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+main > .rule {
+    grid-column: rules;
+    max-width: none;
+    justify-self: right;
+    width: 100%;
+    /* 规则行只占标签高度；收一点下边距让它贴近所标注的那段 */
+    margin-bottom: -4px;
+}
+
+/* 标题间距被上面的 margin:0 抹平，这里按栅格重算 */
+main > h2 {
+    margin-top: 26px;
+}
+
+main > h3 {
+    margin-top: 22px;
+}
+
+main > h4,
+main > h5,
+main > h6 {
+    margin-top: 18px;
+}
+
+main > hr {
+    width: 100%;
+}
+
+/* ── 2. 规则标签 ─────────────────────────────────────────── */
+
+:root {
+    /* 「上一页」箭头浮层的宽度（§8 收到 4rem）+ 与规则标签之间的间距。
+       mdBook 的 :root 是 62.5%，1rem = 10px，所以这里是 40px + 16px。 */
+    --nav-gutter: calc(4rem + 1.6rem);
+}
+
+.rule {
+    --rule-font-mult: 0.8;
+
+    font-size: calc(1em * var(--rule-font-mult));
+    container-type: inline-size;
+    container-name: rule;
+}
+
+.rule-link {
+    display: block;
+    text-align: right;
+    /* 右侧留白；左侧让出「上一页」箭头的命中区，标签不钻到它下面 */
+    padding-right: 14px;
+    padding-left: var(--nav-gutter);
+    /* 单行显示，不在 <wbr> 处折行：放不下的由下面「2.1 逐条的 [*]」换成 [*]  */
+    white-space: nowrap;
+    /* 没有 JS 时没人加 .rule--tight，超长标签会被裁掉——宁可裁，也不要压到箭头上 */
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--rule-fg, #999) !important;
+}
+
+.rule-link:hover {
+    color: var(--fg) !important;
+}
+
+/* 预处理器在每个点前面插了 <wbr>，方便窄栏里断成两行；但这里要的是「要么整条单行、
+   要么退化成 [*]」，换行点必须关掉。
+   注意 Chromium 即使在 white-space: nowrap 之下也会在 <wbr> 处断行，光靠 nowrap
+   挡不住，得把元素本身去掉（它一旦不渲染，就不再产生断行机会）。 */
+main > .rule wbr {
+    display: none;
+}
+
+/* 被点开的规则加一个 » 指示，与标题的 :target 一致 */
+.rule:target .rule-link {
+    color: var(--fg) !important;
+}
+
+.rule:target .rule-link::before {
+    content: "»";
+    padding-right: 5px;
+}
+
+/* 左栏被压到连一个 ID 都放不下时，整页一起退化成 [*]（容器查询只能按栏宽判断）。
+   换算：标签可用宽度 = 左栏宽 − --nav-gutter(56px) − padding-right(14px)，20rem 左栏下
+   就是 200 − 70 = 130px。书里最短的标签 [attribute.class] 实测 92px，所以左栏窄于
+   70 + 92 = 162px 时一个都放不下；162px ÷ 0.8em 字号(12.8px) = 12.7em。
+   有 JS 时逐条判断（§2.1）会得出同样结论，这条查询负责没有 JS 时也不裁字。 */
+@container rule (width < 12.7em) {
+    main > .rule a.rule-link span {
+        display: none;
+    }
+
+    main > .rule > a.rule-link::before {
+        content: "[*]";
+    }
+}
+
+/* ── 2.1 逐条的 [*]：只让放不下的那几条退出 ───────────────── */
+
+/* CSS 判断不了「这段文字有没有溢出」（container-type 一加，尺寸就与内容无关了），
+   所以个别超长的 ID 由 theme/rule-fit.js 量出 scrollWidth > clientWidth 之后
+   给 .rule 加 .rule--tight。两态与上面的栏宽查询共用同一套选择器，样式一致。 */
+.rule--tight .rule-link span {
+    display: none;
+}
+
+.rule--tight .rule-link::before {
+    content: "[*]";
+}
+
+/* ── 3. 语言切换 ─────────────────────────────────────────── */
+
+.lang-switch {
+    text-align: right;
+    font-size: 0.9em;
+    color: var(--rule-fg, #999);
+}
+
+.lang-switch a,
+.lang-switch span {
+    margin-left: 12px;
+    text-decoration: none;
+}
+
+.lang-switch a {
+    color: inherit;
+}
+
+.lang-switch a:hover {
+    color: var(--fg);
+    text-decoration: underline;
+}
+
+.lang-switch span {
+    font-weight: 600;
+    color: var(--fg);
+}
+
+/* ── 4. 提示块：圆角包围框 ───────────────────────────────── */
+
+/* 预处理器产出的结构是
+       <div class="alert alert-note"><blockquote><p class="alert-title">…</p>…</blockquote></div>
+   外层画框，内层引用块去掉 mdBook 给的背景、内边距与上下细边。 */
+.alert {
+    /* 边框与底色都由类型色算出来，深浅主题共用一套公式；
+       底色深浅由 --alert-tint 定，默认 7%，个别块要更深时单独覆盖 */
+    border: 1px solid color-mix(in srgb, var(--alert-ink) 45%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--alert-ink) var(--alert-tint, 7%), transparent);
+    padding: 12px 16px;
+    margin: 16px 0;
+}
+
+.alert blockquote {
+    margin: 0;
+    padding: 0;
+    /* 必须是 transparent：.alert 的底色本身带透明度，用 inherit 会在框内
+       把同一层半透明色再刷一遍，看起来像内外两层底色 */
+    background: transparent;
+    border: none;
+}
+
+/* 框内的代码块不再自己铺底色（mdBook 的高亮样式给 .hljs 铺了灰底，
+   叠在彩色框上会脏），直接透出框的底色；再补一圈内轮廓当边界，
+   否则代码块和正文之间就没有分界了。 */
+.alert .hljs {
+    background: transparent;
+}
+
+.alert pre {
+    border: 1px solid color-mix(in srgb, var(--alert-ink) 22%, transparent);
+    border-radius: 6px;
+}
+
+/* 行内代码在框内同样没有底色可依，照代码块的样子补一圈同色细边框 */
+.alert :not(pre) > code {
+    border: 1px solid color-mix(in srgb, var(--alert-ink) 22%, transparent);
+    border-radius: 4px;
+    padding: 0.05em 0.3em;
+}
+
+/* 标题是 flex 行：图标、文字、标题里的版本号各自成为 flex 项。
+   需要保住行内空格的标题（弃用块的「弃用的 API（自 1.2 起）」）由预处理器
+   把整句包进 `<span class="alert-title-text">`，这里不用为它再加样式。 */
+.alert-title {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: var(--alert-ink);
+}
+
+.alert-title svg {
+    flex: none;
+    margin-right: 8px;
+    fill: currentColor;
+}
+
+/* 块内节奏交给相邻兄弟选择器：标题与正文之间只隔一次 10px */
+.alert blockquote > * {
+    margin-block: 0;
+}
+
+.alert blockquote > * + * {
+    margin-top: 10px;
+}
+
+/* 列表在框内要留出缩进，否则项目符号贴着圆角 */
+.alert blockquote ul,
+.alert blockquote ol {
+    padding-left: 20px;
+}
+
+/* 标题里的版本号：加粗描边的小圆角框。版本区别块与弃用块共用这一套，
+   两处表达的是同一件事——这段内容属于哪个版本。 */
+.alert-version-tag {
+    border: 2px solid color-mix(in srgb, var(--alert-ink) 55%, transparent);
+    border-radius: 8px;
+    padding: 0 7px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+/* ── 4.1 版本区别块：外框里套 Before / After 两个独立小框 ──── */
+
+/* 版本区别块的标题是「[1.0] 版本差异」，版本号是 flex 项，得自带右边距 */
+.alert-version .alert-version-tag {
+    margin-right: 8px;
+}
+
+/* 小框的画法与提示块内代码块的边框一致 */
+.alert-part {
+    border: 1px solid color-mix(in srgb, var(--alert-ink) 22%, transparent);
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.alert-part-title {
+    margin-block: 0;
+    font-weight: 600;
+    color: var(--alert-ink);
+}
+
+.alert-part > * {
+    margin-block: 0;
+}
+
+.alert-part > * + * {
+    margin-top: 8px;
+}
+
+/* 类型 -> 取色变量 */
+.alert-note {
+    --alert-ink: var(--ink-note);
+}
+
+.alert-warning {
+    --alert-ink: var(--ink-warning);
+}
+
+.alert-example {
+    --alert-ink: var(--ink-example);
+}
+
+.alert-incomplete {
+    --alert-ink: var(--ink-incomplete);
+}
+
+/* 「该条目演进中」：青色，底色比默认深一点，正好落在 #e6f2f5 */
+.alert-evolving {
+    --alert-ink: var(--ink-evolving);
+    --alert-tint: 10%;
+}
+
+/* 「弃用的 API」：红色 */
+.alert-deprecated {
+    --alert-ink: var(--ink-deprecated);
+}
+
+.alert-version {
+    --alert-ink: var(--ink-version);
+}
+
+/* ── 5. 表格：三线表 + 圆角外框 ──────────────────────────── */
+
+/* 外框兼任三线表的顶线与底线，框内只再画一条栏目线（表头下沿），
+   整张表因此只有三条横线。框与线都是灰色，一律不铺底色。
+   灰是单独定义的 `--ink-neutral`，不从正文前景色兑，免得跟着正文字色跑。 */
+:root {
+    /* 外框沿用提示块外框那一档（45%）；栏目线取 30%——这套灰本身就比彩色
+       类型色浅，照框内描边的 22% 画会淡到看不出是三线表 */
+    --table-frame: color-mix(in srgb, var(--ink-neutral) 45%, transparent);
+    --table-rule: color-mix(in srgb, var(--ink-neutral) 30%, transparent);
+}
+
+.table-wrapper {
+    width: 100%;
+    border: 1px solid var(--table-frame);
+    border-radius: 8px;
+}
+
+main table {
+    width: 100%;
+    margin: 0;
+    /* 单元格之间不留空隙，横线才连得上 */
+    border-collapse: collapse;
+}
+
+/* 格子不再各画一个：竖线、表头底色、隔行底色一并去掉 */
+main table th,
+main table td {
+    padding: 5px 14px;
+    border: none;
+    background: transparent;
+}
+
+main table thead,
+main table thead tr,
+main table tbody tr:nth-child(2n) {
+    background: transparent;
+}
+
+main table thead tr {
+    border: none;
+}
+
+/* 三线表的第三条线：表头下沿。表头与正文一样左对齐，免得一列里出现
+   两种对齐方式（`---:` 写成靠右的列仍由 mdBook 的行内样式接管） */
+main table thead th {
+    border-bottom: 1px solid var(--table-rule);
+    font-weight: 600;
+    text-align: left;
+}
+
+/* 表格里的行内代码与提示块里一致：不铺底，改成同色描边 */
+main .table-wrapper :not(pre) > code {
+    background: transparent;
+    border: 1px solid var(--table-rule);
+    border-radius: 4px;
+    padding: 0.05em 0.3em;
+}
+
+/* ── 6. 代码与行内代码：等宽栈，字号仍取正文大小 ─────────── */
+
+/* 字体取 `--pxc-code-font`（等宽），字号仍是正文字号：代码要靠固定字宽与配对字形来读，
+   `->`、`::`、用空格对齐的注释列全是 ASCII 排出来的。比例字体里 `>` 对齐的是大写字母
+   中线，比 `-` 所在的小写主体中线高 0.094em（16px 下 1.5px），`->` 会像浮在半空——
+   这是 §0 里正文与代码分开选字体的直接原因。
+   <pre> 的等宽字体来自浏览器的 UA 样式，围栏里的 <code> 是从 pre 继承下来的，
+   所以 pre 必须一起改——只压 code 时行内代码对了、围栏代码块仍是别的字体。
+   mdBook 的 `code { font-family: var(--mono-font) !important }` 带 !important，
+   这里同样得带；本站样式在它之后加载，同权重取后者。 */
+pre,
+code,
+.hljs {
+    font-family: var(--pxc-code-font) !important;
+    font-size: 1em;
+}
+
+/* 键盘按键（mdBook 自带的快捷键弹层）跟代码用同一套字体 */
+kbd {
+    font-family: var(--pxc-code-font);
+}
+
+/* 超宽的代码行改为横向滚动，而不是被右边缘裁掉。
+   mdBook 只给带 `.hljs` 的块设了 `overflow-x: auto`，而本站的围栏多是 `language-pxc`
+   （highlight.js 不认识这门语言），拿不到那个类，长行于是静默截断——
+   attributes 页那条 118 字符的 `[[AttributeDescription(...)]]` 就是例子。 */
+pre {
+    overflow-x: auto;
+}
+
+/* ── 7. 各主题配色 ───────────────────────────────────────── */
+
+.light,
+.rust {
+    --ink-note: #0969da;
+    --ink-warning: #9a6700;
+    --ink-example: #8250df;
+    --ink-incomplete: #bc4c00;
+    --ink-evolving: #057d9b;
+    --ink-deprecated: #c92a5b;
+    --ink-version: #1a7f37;
+    /* 三线表的灰，只给表格用，不属于任何提示块 */
+    --ink-neutral: #6e6b5e;
+    --rule-fg: #999;
+}
+
+.coal,
+.navy,
+.ayu {
+    --ink-note: #4493f8;
+    --ink-warning: #d29922;
+    --ink-example: #ab7df8;
+    --ink-incomplete: #f0883e;
+    --ink-evolving: #4dc4d9;
+    --ink-deprecated: #e9638c;
+    --ink-version: #3fb950;
+    --ink-neutral: #8b949e;
+    --rule-fg: #8b8b8b;
+}
+
+/* ── 8. 「上一页 / 下一页」箭头 ───────────────────────────── */
+
+/* mdBook 的 .nav-chapters 是一条 min-width:90px / max-width:150px、上下贴边的
+   position:fixed 命中区，里面只画一个箭头，却把正文左侧的规则栏盖掉 90px，
+   逼得规则标签只能用 [*]。这里把命中区收到箭头本身那么宽（4rem = 40px）。 */
+.nav-chapters {
+    min-width: 0;
+    max-width: none;
+    width: 4rem;
+}
+
+/* 高亮跟着收到箭头本身，不再刷一整条 90px 宽的竖带 */
+.nav-chapters:hover {
+    background-color: transparent;
+}
+
+.nav-chapters:hover .fa-svg {
+    background-color: var(--theme-hover);
+    border-radius: 6px;
+}
+
+/* §1 的左栏下限 20rem 只在「不压正文」的宽度上保留：
+   20rem(左栏) + 750px(正文) + 36px(右留白) = 986px 页面宽，加 300px 侧栏约 1290px 视口。
+   比这更窄时宁可整页退化成 [*]，也不去挤正文列。 */
+@media only screen and (max-width: 1290px) {
+    main {
+        grid-template-columns:
+            [rules] minmax(36px, 1fr)
+            [text] minmax(0, var(--content-max-width))
+            [margin] minmax(36px, 1fr);
+    }
+}
+

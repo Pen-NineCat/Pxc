@@ -2,7 +2,7 @@
 # Copyright(c) 2026-Present Pen-NineCat(PenNineCat)
 # https://github.com/Pen-NineCat
 
-# 构建 Docs/book 并发布到 GitHub Pages：https://pen-ninecat.github.io/Pxc/
+# 构建 PxcReference 并发布到 GitHub Pages：https://pen-ninecat.github.io/Pxc/
 # 目前只支持手动触发（仓库 Actions 页面点 "Run workflow"），
 # PR / tag 触发的策略待定，加的时候在上面的 on: 里添即可。
 name: Docs / Pages
@@ -43,13 +43,13 @@ jobs:
       # book.toml 的 [preprocessor.pxc-spec] 调用 `python tools/pxc_spec.py`；
       # ubuntu runner 预装 python-is-python3，不需要额外装 Python
       - name: Build book
-        working-directory: Docs/book
+        working-directory: PxcReference/
         run: mdbook build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: Docs/book/book
+          path: PxcReference/book
 
   deploy:
     needs: build
