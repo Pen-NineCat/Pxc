@@ -6,7 +6,7 @@
 
 *[中文版](README.md)*
 
-This directory is `Docs/book`. It is rendered with [mdBook](https://rust-lang.github.io/mdBook/) and
+This directory is `PxcReference`. It is rendered with [mdBook](https://rust-lang.github.io/mdBook/) and
 styled after the [Rust Reference](https://doc.rust-lang.org/reference/): a collapsible sidebar
 (numbering is switched off here), rule identifiers in the left margin of the text column,
 admonitions drawn as type-coloured rounded boxes, and tables drawn as three-line tables.
@@ -32,7 +32,7 @@ cargo install mdbook --locked
 ## Layout
 
 ```
-Docs/book/
+PxcReference
 ├─ book.toml          # mdBook config: CSS, preprocessor, fold depth
 ├─ src/
 │  ├─ SUMMARY.md      # table of contents: two top-level trees, 中文 / English
@@ -47,104 +47,10 @@ Docs/book/
 
 `book/` holds the build output and is excluded in `.gitignore`.
 
-`src/` is empty for now — the prose has not been written yet; the author splits the chapters out of the
-specification documents. Without `src/SUMMARY.md`, `mdbook build` fails outright (`failed to read
-src/SUMMARY.md`), so use the sandbox copy in `PersonalWorkaround/RefStyleResearch/demo` to look at the
-styling in the meantime.
-
-## The three notations
-
-### 1. Rule identifiers
-
-A line of its own attaches a citable anchor to **the block that follows** (a heading or a paragraph):
-
-```markdown
-r[storage.kinds]
-## Three storage durations
-```
-
-It renders as a grey label `[storage.kinds]` in the left margin, with the anchor `#r-storage.kinds`.
-Identifiers are dotted, start with lowercase English, and **are never changed once something cites
-them**. The same rule must use the same identifier in both editions.
-
-An `r[xxx]` inside a fenced code block is not treated as a rule, so demonstrating the notation inside
-a fence is safe.
-
-### 2. Admonitions
-
-```markdown
-> [!WARNING]
-> There are only two roads across……
-```
-
-Six kinds are supported: `NOTE`, `WARNING`, `EXAMPLE`, `INCOMPLETE` (incomplete entry), `EVOLVING`
-(entry still evolving) and `DEPRECATED-<version>` (deprecated API; the version goes in the marker, see
-§2.2). The heading follows the language of the page (a Chinese page shows 「警告」, an English page
-shows "Warning"). A `> [!NOTE]` inside a fenced code block is left alone, so it can be used to
-demonstrate the syntax.
-
-### 2.1 Version difference blocks
-
-```markdown
-> [!VERSION-1.0]
-> Before Version:
-> How it worked before 1.0; several paragraphs are fine.
->
-> After Version:
-> How it works from 1.0 on.
-```
-
-Renders as one outer box whose title shows the version `1.0` inside a bold rounded outline, holding two
-separately bordered parts titled "Before Version:" and "After Version:". The parts reuse the same border
-recipe as the code outline inside a block. The markers may be written in English
-(`Before Version:` / `After Version:`) or in Chinese; if one side is missing the build warns and falls
-back to a plain admonition.
-
-Use it only for major-version updates whose changes break existing code; the difference between major
-and minor versions belongs in the prose, not in another block kind.
-
-### 2.2 Deprecated APIs
-
-```markdown
-> [!DEPRECATED-1.2]
-> `ValueMoveConvert` is deprecated; use `MoveConstruct` instead.
-```
-
-The version goes in the marker and is carried into the heading: a Chinese page shows
-「弃用的 API（自 `1.2` 起）」and an English page shows “Deprecated API (since `1.2`)”. The version sits in
-the same bold rounded outline as in a version difference block — both express the same thing: which
-release this content belongs to. A bare `[!DEPRECATED]` makes the build warn and renders the heading
-without a version.
-
-### 3. Referring to another rule
-
-Write only the phrase in the prose, and put the rule identifier in the link definition:
-
-```markdown
-See [three storage durations].
-
-[three storage durations]: storage.kinds
-```
-
-The preprocessor expands it into `storage.html#r-storage.kinds`. When the same identifier exists in
-both editions, it points at the edition being read. If the target looks like a rule identifier but
-does not exist (usually a typo), the build reports it in one summary line and leaves the definition
-untouched, so a broken link that 404s on click is never produced silently.
-
-## How tables and code look
+## Page format
 
 Neither needs a notation of its own: the appearance lives in `theme/pxc.css`, and the prose is plain
 Markdown.
-
-A **table** renders as a three-line table: a grey rounded frame around it and one thin rule under the
-header row. The frame's top and bottom edges are the table's top and bottom rules, so the whole table
-has exactly three horizontal lines. No fill, no vertical lines, no zebra striping; headers are
-left-aligned like the body (a `| ---: |` column still right-aligns).
-
-| Storage duration | Where the object lives | Who creates it |
-| --- | --- | --- |
-| Automatic | At the declaration (on the stack, or inside the host object) | The compiler |
-| Managed | The collector heap | The collector |
 
 **Fonts**: the prose uses the system UI stack (Segoe UI on Windows, SF on macOS) and code uses a
 monospace stack (`SF Mono` → `JetBrains Mono` → `Fira Code` → `Consolas` → `Liberation Mono` …)
