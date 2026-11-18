@@ -2,8 +2,17 @@
 # Copyright(c) 2026-Present Pen-NineCat(PenNineCat)
 # https://github.com/Pen-NineCat
 
-# Build Diagonstic error code table
-execute_process(COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/Diagnostic/GenerateDiagnosticTable.py)
+# Build Diagnostic error code table
+# find_package() resolves the interpreter on every platform: python.exe on Windows, python3 on Linux.
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+execute_process(
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Diagnostic/GenerateDiagnosticTable.py
+	RESULT_VARIABLE generateResult
+)
+if(NOT generateResult EQUAL 0)
+	# A stale DiagnosticCodeTable.hpp still compiles and silently misses the new diagnostic codes.
+	message(FATAL_ERROR "GenerateDiagnosticTable.py failed with exit code ${generateResult}, check that PyYAML is installed for ${Python3_EXECUTABLE}.")
+endif()
 
 set(PLANG_CORE_SOURCES
 	"Diagnostic/Diagnostic.hpp"
@@ -23,7 +32,7 @@ set(PLANG_CLI_SOURCES
 find_package(LLVM CONFIG REQUIRED)
 
 add_library(PLang-Core ${PLANG_CORE_SOURCES})
-target_link_directories(PLang-Core PRIVATE Pxc-Common)
+target_link_libraries(PLang-Core PRIVATE Pxc-Common)
 
 add_executable(PLang-CLI ${PLANG_CLI_SOURCES})
 target_link_libraries(PLang-CLI PRIVATE PLang-Core)

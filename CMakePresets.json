@@ -2,35 +2,23 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "windows-base",
+      "name": "project-base",
       "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "cl.exe",
-        "CMAKE_CXX_COMPILER": "cl.exe",
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "$env{VSINSTALLDIR}Common7/IDE/CommonExtensions/Microsoft/CMake/cmake/Microsoft/SegmentHeap.cmake",
-        "VCPKG_INSTALLED_DIR": "${sourceDir}/out/vcpkg_installed",
-        "VCPKG_INSTALL_OPTIONS": "--clean-after-build"
-      },
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain.cmake",
+        "PXC_CMAKE_VCPKG_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
       }
     },
     {
       "name": "x64-debug",
       "displayName": "x64 Debug",
-      "inherits": "windows-base",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
+      "inherits": "project-base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PXC_CMAKE_ARCHITECTURE": "x64"
       }
     },
     {
@@ -46,20 +34,16 @@
       "displayName": "x64 Debug (Tests)",
       "inherits": "x64-debug",
       "cacheVariables": {
-        "PXC_BUILD_TESTS": "ON"
+        "PXC_CMAKE_ENABLE_TESTS": "ON"
       }
     },
     {
       "name": "x86-debug",
       "displayName": "x86 Debug",
-      "inherits": "windows-base",
-      "architecture": {
-        "value": "x86",
-        "strategy": "external"
-      },
+      "inherits": "project-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "VCPKG_INSTALLED_DIR": "${sourceDir}/out/vcpkg_installed_x86"
+        "PXC_CMAKE_ARCHITECTURE": "x86"
       }
     },
     {
@@ -83,6 +67,28 @@
         "noTestsAction": "error",
         "stopOnFailure": false
       }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "x64-debug",
+      "configurePreset": "x64-debug"
+    },
+    {
+      "name": "x64-release",
+      "configurePreset": "x64-release"
+    },
+    {
+      "name": "x64-debug-tests",
+      "configurePreset": "x64-debug-tests"
+    },
+    {
+      "name": "x86-debug",
+      "configurePreset": "x86-debug"
+    },
+    {
+      "name": "x86-release",
+      "configurePreset": "x86-release"
     }
   ]
 }
