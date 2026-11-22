@@ -14,12 +14,19 @@ r[attribute.define]
 
 ## 定义
 
-属性是一种全程序通用的元数据系统，这些元数据会依据其属性描述、名称、约定附加给其目标，并供读取。本语言的属性结合了 C++ 的静态注解，以及 C# / Java 等语言的动态特性/注解，其语法来自于 C++。
+属性是一种全程序通用的元数据系统，这些元数据会依据其属性描述、名称、约定附加给其目标，并供读取。
 
 属性包括：
 
 - 内建属性
 - 通过属性类描述属性声明的属性类
+
+## 属性声明语法
+
+```
+[[Attribute(...)]]
+[[Attribute]] // 省略参数列表
+```
 
 r[attribute.builtin]
 
@@ -33,11 +40,53 @@ r[attribute.builtin]
 
 r[attribute.class]
 
-## 属性类与属性类描述属性
+## 属性类
 
-为类添加属性`[[AttributeDescription(...)]]`标注，其就成为一个**属性类**，可以附加给其他目标。
+属性类是指允许用户自定义的属性对象，为类添加属性类描述属性`[[AttributeDescription(...)]]`后，其就成为一个**属性类**，可以附加给其他目标。
 
-属性类描述属性的等价定义如下：
+属性类必须有至少一个可用的构造函数，并且是`constexpr` 的，因为必须在**编译期**以非指派初始化的方式构造一个属性类，但可以为默认实现。
+
+属性声明中的参数会被传递给构造函数，并按照重载决议进行匹配，如果无可匹配的构造函数，则编译错误。
+
+> [!EXAMPLE]
+>
+> 以下声明了一个用于标注监听端口的属性类，接受一个`U16`参数。以及一个使用这个属性的函数。
+>
+> ```
+> [[AttributeDescription(ReflectState.Dynamic, AttributeTarget.Function)]]
+> class ListenPortAttr
+> {
+> 	public def constexpr ListenPortAttr(U16 port) noexcept : m_port(port)
+> 	{
+> 		
+> 	}
+> 	
+> 	private U16 m_port;
+> }
+> 
+> [[ListenPortAttr(500)]]
+> def static MyPortListener(ref MessageBuffer msg) -> void
+> {
+> 	...
+> }
+> ```
+
+## 属性类可存储的类型
+
+属性类内只能储存可`constexpr`储存的对象，包括：
+
+- 整数类型`I8`、`I16`、`I32`、`I64`、`U8`、`U16`、`U32`、`U64`、`Isize`、`Usize`。
+- 浮点类型`F32`、`F64`。
+- 布尔类型`bool`。
+- 字符类型`Char`、`Char8`、`Char16`。
+- 所有枚举类型。
+- 指针类型（需要`unsafe`上下文）。
+- 允许`constexpr`储存的类类型。
+- 上述类型的数组类型。
+
+## 属性类描述属性
+
+属性类描述属性位于模块单元`Std.Meta.Attribute`内，其等价形式为：
 
 ```
 [[AttributeDescription(ReflectState state, AttributeTarget target, bool allowMultiple = false, bool inherit = false)]]

@@ -14,12 +14,19 @@ r[attribute.define]
 
 ## Definition
 
-An attribute is a metadata system shared across the whole program: that metadata is attached to its target according to the attribute's description, name and conventions, and it is available for reading. Pxc's attributes combine the static annotations of C++ with the dynamic features and annotations of languages such as C# and Java, and their syntax comes from C++.
+An attribute is a metadata system shared across the whole program: that metadata is attached to its target according to the attribute's description, name and conventions, and it is available for reading.
 
 Attributes are divided into:
 
 - built-in attributes
 - attribute classes declared through the attribute class description attribute
+
+## Attribute declaration syntax
+
+```
+[[Attribute(...)]]
+[[Attribute]] // the argument list is omitted
+```
 
 r[attribute.builtin]
 
@@ -33,11 +40,53 @@ The following are some of the attributes built into the language; for a detailed
 
 r[attribute.class]
 
-## Attribute classes and the attribute class description attribute
+## Attribute classes
 
-Once a class carries the attribute `[[AttributeDescription(...)]]`, it becomes an **attribute class**, and it can then be attached to other targets.
+An attribute class is a user-definable kind of attribute object: once a class carries the attribute class description attribute `[[AttributeDescription(...)]]`, it becomes an **attribute class**, and it can then be attached to other targets.
 
-The attribute class description attribute is defined, equivalently, as follows:
+An attribute class must have at least one usable constructor, and that constructor must be `constexpr`, because an attribute class has to be constructed at **compile time** by non-designated initialization; the constructor may be a defaulted one.
+
+The arguments in an attribute declaration are passed to the constructor and matched by overload resolution; if there is no constructor that matches, it is a compile error.
+
+> [!EXAMPLE]
+>
+> The following declares an attribute class that annotates a listening port and accepts one `U16` argument, together with a function that uses this attribute.
+>
+> ```
+> [[AttributeDescription(ReflectState.Dynamic, AttributeTarget.Function)]]
+> class ListenPortAttr
+> {
+> 	public def constexpr ListenPortAttr(U16 port) noexcept : m_port(port)
+> 	{
+> 		
+> 	}
+> 	
+> 	private U16 m_port;
+> }
+> 
+> [[ListenPortAttr(500)]]
+> def static MyPortListener(ref MessageBuffer msg) -> void
+> {
+> 	...
+> }
+> ```
+
+## Types that an attribute class can store
+
+An attribute class can only store objects that are storable in a `constexpr` context, including:
+
+- the integer types `I8`, `I16`, `I32`, `I64`, `U8`, `U16`, `U32`, `U64`, `Isize`, `Usize`;
+- the floating-point types `F32`, `F64`;
+- the boolean type `bool`;
+- the character types `Char`, `Char8`, `Char16`;
+- all enumeration types;
+- pointer types (which require an `unsafe` context);
+- class types that are storable in a `constexpr` context;
+- array types of the above.
+
+## The attribute class description attribute
+
+The attribute class description attribute lives in the module unit `Std.Meta.Attribute`; it is defined, equivalently, as follows:
 
 ```
 [[AttributeDescription(ReflectState state, AttributeTarget target, bool allowMultiple = false, bool inherit = false)]]
