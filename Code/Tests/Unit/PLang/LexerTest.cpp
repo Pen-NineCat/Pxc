@@ -52,7 +52,8 @@ namespace Pxc::PLang::Test
 		                                   "\tstring b = \"Hello,world\";\n"
 		                                   "\tauto c = b + a;\n"
 		                                   "\n"
-		                                   "\tstd.io.println(f\"Hello,world,{a}\");\n"
+		                                   // f-string 暂不提供，原样例为 println(f"Hello,world,{a}")
+		                                   "\tstd.io.println(\"Hello,world\");\n"
 		                                   "\n"
 		                                   "\treturn 0;\n"
 		                                   "}\n",
@@ -66,11 +67,11 @@ namespace Pxc::PLang::Test
 		              TokenType::String, TokenType::Semi, TokenType::K_Auto, TokenType::Ident, TokenType::Eq,
 		              TokenType::Ident, TokenType::Plus, TokenType::Ident, TokenType::Semi, TokenType::Ident,
 		              TokenType::Dot, TokenType::Ident, TokenType::Dot, TokenType::Ident, TokenType::LParen,
-		              TokenType::FString, TokenType::RParen, TokenType::Semi, TokenType::K_Return, TokenType::Int,
+		              TokenType::String, TokenType::RParen, TokenType::Semi, TokenType::K_Return, TokenType::Int,
 		              TokenType::Semi, TokenType::RBrace, TokenType::Eof });
 
 		EXPECT_EQ(TextAt(tokens, 33), "println");
-		EXPECT_EQ(TextAt(tokens, 35), "Hello,world,{a}");
+		EXPECT_EQ(TextAt(tokens, 35), "Hello,world");
 	}
 
 	TEST(Lexer, ArrowIsSingleToken)
@@ -84,6 +85,8 @@ namespace Pxc::PLang::Test
 		EXPECT_EQ(tokens[0].Source.Length, 2);
 	}
 
+	// f-string 暂不提供（Lexer 中对应分支已注释），恢复时一并放开本节。
+#if 0
 	TEST(Lexer, FStringIsSingleToken)
 	{
 		Lexer lexer;
@@ -103,6 +106,7 @@ namespace Pxc::PLang::Test
 		ExpectTypes(tokens, { TokenType::FString, TokenType::Eof });
 		EXPECT_EQ(TextAt(tokens, 0), "{d[\"k\"]}");
 	}
+#endif
 
 	TEST(Lexer, StringKeepsRawEscapeSequence)
 	{
@@ -112,6 +116,75 @@ namespace Pxc::PLang::Test
 
 		ExpectTypes(tokens, { TokenType::String, TokenType::Eof });
 		EXPECT_EQ(TextAt(tokens, 0), "ab\\tc");
+	}
+
+	TEST(Lexer, InvalidStringEscapeIsError)
+	{
+		Lexer lexer;
+		DiagnosticLabelList diagnosticLabelList;
+		const auto tokens = lexer.Tokenize(R"("a\qc")", &diagnosticLabelList, false);
+
+		ExpectTypes(tokens, { TokenType::Eof });
+		ASSERT_EQ(diagnosticLabelList.size(), 1);
+		EXPECT_EQ(diagnosticLabelList[0].Code, DiagnosticCode::E00016_InvalidEscapeSequences);
+	}
+
+	TEST(Lexer, StringEndingWithBackslashIsUnterminated)
+	{
+		Lexer lexer;
+		DiagnosticLabelList diagnosticLabelList;
+		const auto tokens = lexer.Tokenize("\"ab\\\nnext", &diagnosticLabelList, false);
+
+		ExpectTypes(tokens, { TokenType::Ident, TokenType::Eof });
+		ASSERT_EQ(diagnosticLabelList.size(), 1);
+		EXPECT_EQ(diagnosticLabelList[0].Code, DiagnosticCode::E00010_UnterminatedStringLiteral);
+	}
+
+	TEST(Lexer, FStringSplitsIntoIdentAndString)
+	{
+		Lexer lexer;
+		DiagnosticLabelList diagnosticLabelList;
+		const auto tokens = lexer.Tokenize("f\"Hello,{a}\"", &diagnosticLabelList, false);
+
+		ExpectTypes(tokens, { TokenType::Ident, TokenType::String, TokenType::Eof });
+		EXPECT_EQ(TextAt(tokens, 0), "f");
+		EXPECT_EQ(TextAt(tokens, 1), "Hello,{a}");
+	}
+
+	TEST(Lexer, SpecOperatorTokens)
+	{
+		Lexer lexer;
+		DiagnosticLabelList diagnosticLabelList;
+		const auto tokens = lexer.Tokenize(":= === !== ?? >>>= ...", &diagnosticLabelList, false);
+
+		ExpectTypes(tokens, { TokenType::ColonEq, TokenType::EqEqEq, TokenType::BangEqEq, TokenType::QuestionQuestion,
+		                      TokenType::ShrUEq, TokenType::Ellipsis, TokenType::Eof });
+		EXPECT_TRUE(diagnosticLabelList.empty());
+	}
+
+	TEST(Lexer, SpecKeywordsAreReserved)
+	{
+		Lexer lexer;
+		DiagnosticLabelList diagnosticLabelList;
+		const auto tokens = lexer.Tokenize("switch do friend with operator sizeof alignof noexcept implicit default delete",
+		                                   &diagnosticLabelList, false);
+
+		ExpectTypes(tokens,
+		            { TokenType::K_Switch, TokenType::K_Do, TokenType::K_Friend, TokenType::K_With, TokenType::K_Operator,
+		              TokenType::K_Sizeof, TokenType::K_Alignof, TokenType::K_Noexcept, TokenType::K_Implicit,
+		              TokenType::K_Default, TokenType::K_Delete, TokenType::Eof });
+		EXPECT_TRUE(diagnosticLabelList.empty());
+	}
+
+	TEST(Lexer, DotsAreNotEllipsis)
+	{
+		Lexer lexer;
+		DiagnosticLabelList diagnosticLabelList;
+		const auto tokens = lexer.Tokenize(". .. ...", &diagnosticLabelList, false);
+
+		ExpectTypes(tokens,
+		            { TokenType::Dot, TokenType::Dot, TokenType::Dot, TokenType::Ellipsis, TokenType::Eof });
+		EXPECT_TRUE(diagnosticLabelList.empty());
 	}
 
 	TEST(Lexer, CharDecodesCodePoint)

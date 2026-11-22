@@ -58,7 +58,7 @@ namespace Pxc::PLang
 		m_currentOffset = 0;
 		m_currentColumn = 1;
 		m_currentLine = 1;
-	
+
 		// UTF-8 BOM
 		if (m_source.compare(m_currentOffset, 3, "\xEF\xBB\xBF") == 0)
 			m_currentOffset += 3;
@@ -76,8 +76,10 @@ namespace Pxc::PLang
 				LexLineComment();
 			else if (c == '/' and Peek(1) == '*')
 				LexBlockComment();
-			else if (c == 'f' and Peek(1) == '"')
-				LexFString();
+			// f-string 暂不提供：等有用户与社区后再定是否加入该内建语法。
+			// 分支注释掉后 `f"..."` 会拆成 Ident + String，由语法器报错。
+			// else if (c == 'f' and Peek(1) == '"')
+			// 	LexFString();
 			else if (c == '"')
 				LexString();
 			else if (c == '\'')
@@ -311,6 +313,7 @@ namespace Pxc::PLang
 
 		SourceView view = CreateSourceView();
 		Usize start = m_currentOffset;
+		bool valid = true;
 
 		while (true)
 		{
@@ -325,9 +328,25 @@ namespace Pxc::PLang
 			if (c == '"')
 			{
 				std::string_view text = ViewFrom(start);
-				CreateToken(TokenType::String, view, text);
 				Advance();
+				if (valid)
+					CreateToken(TokenType::String, view, text);
 				return;
+			}
+
+			// 转义只校验、不解码：载荷保持原文，解码留给后续阶段
+			if (c == '\\')
+			{
+				// 反斜杠后直接换行或结尾：字符串不跨行，按未闭合处理
+				if (Peek(1) == '\n' or Peek(1) == '\r' or m_currentOffset + 1 >= m_source.size())
+				{
+					Advance(); // 吃掉反斜杠，避免外层再把 '\' 当运算符报错
+					ReportError(view, DiagnosticCode::E00010_UnterminatedStringLiteral);
+					return;
+				}
+
+				valid = LexEscape(nullptr) and valid;
+				continue;
 			}
 
 			Advance();

@@ -24,32 +24,36 @@
                                \
 	X(K_Module)                \
 	X(K_Import)                \
+	X(K_With)                  \
+	X(K_Friend)                \
 	X(K_Def)                   \
+	X(K_Operator)              \
 	X(K_Auto)                  \
 	X(K_Const)                 \
 	X(K_Class)                 \
 	X(K_Interface)             \
 	X(K_Enum)                  \
 	X(K_Union)                 \
-	X(K_Throws)                \
 	X(K_Throw)                 \
 	X(K_Try)                   \
 	X(K_Catch)                 \
                                \
-	X(K_Value)                 \
 	X(K_Dyn)                   \
 	X(K_Mov)                   \
 	X(K_Ref)                   \
                                \
 	X(K_Using)                 \
-	X(K_Match)                 \
+	X(K_Switch)                \
 	X(K_Case)                  \
+	X(K_Do)                    \
 	X(K_Unsafe)                \
 	X(K_Template)              \
 	X(K_Concept)               \
 	X(K_Requires)              \
 	X(K_As)                    \
 	X(K_Is)                    \
+	X(K_Sizeof)                \
+	X(K_Alignof)               \
 	X(K_This)                  \
 	X(K_New)                   \
                                \
@@ -62,9 +66,13 @@
 	X(K_Override)              \
 	X(K_Abstract)              \
 	X(K_Final)                 \
+	X(K_Default)               \
+	X(K_Delete)                \
+	X(K_Noexcept)              \
                                \
 	X(K_Static)                \
 	X(K_Constexpr)             \
+	X(K_Implicit)              \
                                \
 	X(K_If)                    \
 	X(K_Else)                  \
@@ -94,6 +102,8 @@
 	X(Ge)                      \
 	X(EqEq)                    \
 	X(BangEq)                  \
+	X(EqEqEq)                  \
+	X(BangEqEq)                \
 	X(AmpAmp)                  \
 	X(PipePipe)                \
 	X(Eq)                      \
@@ -107,8 +117,7 @@
 	X(CaretEq)                 \
 	X(ShlEq)                   \
 	X(ShrEq)                   \
-	X(PlusPlus)                \
-	X(MinusMinus)              \
+	X(ShrUEq)                  \
 	X(Arrow)                   \
 	X(LParen)                  \
 	X(RParen)                  \
@@ -119,11 +128,14 @@
 	X(Semi)                    \
 	X(Comma)                   \
 	X(Dot)                     \
+	X(Ellipsis)                \
 	X(Colon)                   \
+	X(ColonEq)                 \
 	X(ColonColon)              \
 	X(Question)                \
 	X(QuestionDot)             \
 	X(QuestionLBracket)        \
+	X(QuestionQuestion)        \
 	X(Eof)                     \
 	X(Error)
 
