@@ -6,6 +6,10 @@
 
 r[introduction.overview]
 
+> [!NOTE]
+>
+> This document is translated by an LLM, therefore maybe it has mistakes. You can see the Chinese document for more information or ask for help.
+
 ## Overview
 
 This book is the language specification and primary reference manual of the Pxc programming language, and it covers the following information:
@@ -58,7 +62,7 @@ An Example admonition stands for an example of the current content, to aid under
 > dyn c := b;
 > ```
 
-A Note admonition stands for additional valid information about the current content, but that information is outside the scope of this book.
+A Note admonition stands for additional valid information about the current content.
 
 > [!NOTE]
 > This is an example of valid information.

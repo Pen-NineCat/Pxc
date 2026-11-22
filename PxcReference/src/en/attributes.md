@@ -8,6 +8,10 @@
 >
 > Some of the examples in this section are incomplete: readers may not always find in them the information they expect, and this section has to wait for other chapters to be filled in.
 
+> [!NOTE]
+>
+> This document is translated by an LLM, therefore maybe it has mistakes. You can see the Chinese document for more information or ask for help.
+
 > The content of this section lives in the module unit `Std.Meta.Attribute`.
 
 r[attribute.define]
