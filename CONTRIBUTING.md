@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Pxc. We welcomes contributions and suggestions. Even if your contribution is not ultimately accepted, we greatly appreciate the fact that you put your valuable time and effort on Pxc.
+Thanks for helping improve Pxc. We welcome contributions and suggestions. Even if your contribution is not ultimately accepted, we greatly appreciate the fact that you put your valuable time and effort on Pxc.
 
 ## LLM policy
 
