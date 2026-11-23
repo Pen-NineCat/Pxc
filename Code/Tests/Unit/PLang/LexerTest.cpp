@@ -4,6 +4,9 @@
 
 #include "PLang/Lex/Lexer.h"
 #include "PLang/Lex/Token.hpp"
+
+#include "../Common.hpp"
+
 #include <gtest/gtest.h>
 #include <initializer_list>
 #include <string_view>
@@ -14,7 +17,7 @@ namespace Pxc::PLang::Test
 {
 	namespace
 	{
-		/// @brief 断言 Token 类型序列与期望完全一致（含末尾 Eof）
+		/// @brief Assert that the token type sequence matches exactly, including the final Eof.
 		void ExpectTypes(const TokenList& tokens, std::initializer_list<TokenType> expected)
 		{
 			ASSERT_EQ(tokens.size(), expected.size());
@@ -22,18 +25,18 @@ namespace Pxc::PLang::Test
 			Usize index = 0;
 			for (const TokenType type : expected)
 			{
-				EXPECT_EQ(tokens[index].Type, type) << "第 " << index << " 个 Token";
+				EXPECT_EQ(tokens[index].Type, type) << "token at index " << index;
 				++index;
 			}
 		}
 
-		/// @brief 取指定下标 Token 的字符串切片载荷
+		/// @brief String slice payload of the token at the given index.
 		std::string_view TextAt(const std::vector<Token>& tokens, Usize index)
 		{
 			return std::get<std::string_view>(tokens[index].Payload);
 		}
 
-		/// @brief 取指定下标 Token 的数值字面量载荷
+		/// @brief Numeric literal payload of the token at the given index.
 		NumberLiteral NumberAt(const std::vector<Token>& tokens, Usize index)
 		{
 			return std::get<NumberLiteral>(tokens[index].Payload);
@@ -42,6 +45,8 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, SampleFromAgentsMd)
 	{
+		// Expect: the full token sequence of the sample, with the println identifier and the
+		// string payload located at the expected indices.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("import std.io;\n"
@@ -52,7 +57,8 @@ namespace Pxc::PLang::Test
 		                                   "\tstring b = \"Hello,world\";\n"
 		                                   "\tauto c = b + a;\n"
 		                                   "\n"
-		                                   // f-string 暂不提供，原样例为 println(f"Hello,world,{a}")
+		                                   // f-strings are not provided yet; the original sample used
+		                                   // println(f"Hello,world,{a}")
 		                                   "\tstd.io.println(\"Hello,world\");\n"
 		                                   "\n"
 		                                   "\treturn 0;\n"
@@ -76,6 +82,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, ArrowIsSingleToken)
 	{
+		// Expect: '->' is one Arrow token spanning two characters.
 		Lexer lexer;
 
 		DiagnosticLabelList diagnosticLabelList;
@@ -85,10 +92,12 @@ namespace Pxc::PLang::Test
 		EXPECT_EQ(tokens[0].Source.Length, 2);
 	}
 
-	// f-string 暂不提供（Lexer 中对应分支已注释），恢复时一并放开本节。
+	// f-strings are not provided yet (the lexer branch is commented out); re-enable this
+	// section together with that branch.
 #if 0
 	TEST(Lexer, FStringIsSingleToken)
 	{
+		// Expect: (disabled) f"..." would lex as one FString token.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("f\"Hello,{a}\"", &diagnosticLabelList, false);
@@ -99,6 +108,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, FStringWithNestedStringInHole)
 	{
+		// Expect: (disabled) a nested string inside a hole would stay inside the FString token.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize(R"(f"{d["k"]}")", &diagnosticLabelList, false);
@@ -110,6 +120,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, StringKeepsRawEscapeSequence)
 	{
+		// Expect: the escape sequence is kept raw in the string payload.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize(R"("ab\tc")", &diagnosticLabelList, false);
@@ -120,6 +131,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, InvalidStringEscapeIsError)
 	{
+		// Expect: an invalid escape reports the escape error and produces no string token.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize(R"("a\qc")", &diagnosticLabelList, false);
@@ -131,6 +143,8 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, StringEndingWithBackslashIsUnterminated)
 	{
+		// Expect: a string ending in a backslash before a newline reports the unterminated
+		// string error.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("\"ab\\\nnext", &diagnosticLabelList, false);
@@ -142,6 +156,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, FStringSplitsIntoIdentAndString)
 	{
+		// Expect: f"..." is split into an Ident 'f' followed by a String token.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("f\"Hello,{a}\"", &diagnosticLabelList, false);
@@ -153,17 +168,19 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, SpecOperatorTokens)
 	{
+		// Expect: the spec operators lex as single tokens with no diagnostics.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize(":= === !== ?? >>>= ...", &diagnosticLabelList, false);
 
 		ExpectTypes(tokens, { TokenType::ColonEq, TokenType::EqEqEq, TokenType::BangEqEq, TokenType::QuestionQuestion,
 		                      TokenType::ShrUEq, TokenType::Ellipsis, TokenType::Eof });
-		EXPECT_TRUE(diagnosticLabelList.empty());
+		EXPECT_EMPTY_DIAGNOSTIC_LABELS(diagnosticLabelList);
 	}
 
 	TEST(Lexer, SpecKeywordsAreReserved)
 	{
+		// Expect: every listed word lexes as its keyword token, with no diagnostics.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("switch do friend with operator sizeof alignof noexcept implicit default delete",
@@ -173,22 +190,24 @@ namespace Pxc::PLang::Test
 		            { TokenType::K_Switch, TokenType::K_Do, TokenType::K_Friend, TokenType::K_With, TokenType::K_Operator,
 		              TokenType::K_Sizeof, TokenType::K_Alignof, TokenType::K_Noexcept, TokenType::K_Implicit,
 		              TokenType::K_Default, TokenType::K_Delete, TokenType::Eof });
-		EXPECT_TRUE(diagnosticLabelList.empty());
+		EXPECT_EMPTY_DIAGNOSTIC_LABELS(diagnosticLabelList);
 	}
 
 	TEST(Lexer, DotsAreNotEllipsis)
 	{
+		// Expect: '.' and '..' split into Dot tokens; only '...' becomes Ellipsis.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize(". .. ...", &diagnosticLabelList, false);
 
 		ExpectTypes(tokens,
 		            { TokenType::Dot, TokenType::Dot, TokenType::Dot, TokenType::Ellipsis, TokenType::Eof });
-		EXPECT_TRUE(diagnosticLabelList.empty());
+		EXPECT_EMPTY_DIAGNOSTIC_LABELS(diagnosticLabelList);
 	}
 
 	TEST(Lexer, CharDecodesCodePoint)
 	{
+		// Expect: each character literal decodes to its code point.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize(R"('a' '\n' '\x41' '\u{4F60}')", &diagnosticLabelList, false);
@@ -203,6 +222,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, RadixIntegerLiterals)
 	{
+		// Expect: hex, binary and octal literals keep their source text.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("0x1F 0b1010 0o755", &diagnosticLabelList, false);
@@ -215,6 +235,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, UnderscoreSeparators)
 	{
+		// Expect: underscores between digits are accepted and kept in the text.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("1_000_000", &diagnosticLabelList, false);
@@ -225,6 +246,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, NumberSuffixes)
 	{
+		// Expect: suffixes are recorded separately and excluded from the literal text.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("1u 1l 1ul 1.0f 1.0", &diagnosticLabelList, false);
@@ -238,13 +260,15 @@ namespace Pxc::PLang::Test
 		EXPECT_EQ(NumberAt(tokens, 3).Suffix, LiteralSuffix::F32);
 		EXPECT_EQ(NumberAt(tokens, 4).Suffix, LiteralSuffix::None);
 
-		// 后缀不属于原文
+		// The suffix is not part of the literal text.
 		EXPECT_EQ(NumberAt(tokens, 0).Text, "1");
 		EXPECT_EQ(NumberAt(tokens, 3).Text, "1.0");
 	}
 
 	TEST(Lexer, FloatNeedsDigitsOnBothSides)
 	{
+		// Expect: '1.' is Int followed by Dot and '.5' is Dot followed by Int; only '3.14'
+		// becomes a Float.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("1. .5 3.14", &diagnosticLabelList, false);
@@ -257,6 +281,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, LeadingZeroIsError)
 	{
+		// Expect: a leading zero reports the numeric literal position error.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("012", &diagnosticLabelList, false);
@@ -268,6 +293,8 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, GluedIdentifierIsError)
 	{
+		// Expect: a number immediately followed by an identifier reports the numeric literal
+		// position error.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("123abc", &diagnosticLabelList, false);
@@ -279,6 +306,8 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, UnterminatedStringIsErrorAndScanContinues)
 	{
+		// Expect: the unterminated string reports an error and scanning resumes on the next
+		// line, producing the identifier.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("\"abc\nvar", &diagnosticLabelList, false);
@@ -290,9 +319,12 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, CommentsAreSkipped)
 	{
+		// Expect: line, block and documentation comments are skipped, leaving the two
+		// identifiers.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
-		const auto tokens = lexer.Tokenize("// 行注释\n/* 块\n注释 */ a /*b*/ c /// 文档\n", &diagnosticLabelList, false);
+		const auto tokens =
+		    lexer.Tokenize("// line comment\n/* block\ncomment */ a /*b*/ c /// doc\n", &diagnosticLabelList, false);
 
 		ExpectTypes(tokens, { TokenType::Ident, TokenType::Ident, TokenType::Eof });
 		EXPECT_EQ(TextAt(tokens, 0), "a");
@@ -301,11 +333,12 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, Utf8ColumnsCountCodePoints)
 	{
+		// Expect: columns count code points rather than bytes, so the final Eof sits at
+		// column 14. Non-ASCII identifiers currently report an error, which this test ignores.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("int \xE4\xB8\xAD = \"\xE4\xB8\xAD\xE6\x96\x87\";", &diagnosticLabelList, false);
 
-		// 非 ASCII 标识符当前报 Error，但列号必须按码点推进：'中' 占 1 列，字符串内的两个汉字各占 1 列
 		ASSERT_GE(tokens.size(), 5);
 		EXPECT_EQ(tokens[4].Type, TokenType::Eof);
 		EXPECT_EQ(tokens[4].Source.Column, 14);
@@ -313,6 +346,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, BomAndCrLf)
 	{
+		// Expect: the BOM is skipped, and CRLF advances the line while keeping column 1.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("\xEF\xBB\xBFint a = 1;\r\nint b = 2;\r\n", &diagnosticLabelList, false);
@@ -330,6 +364,7 @@ namespace Pxc::PLang::Test
 
 	TEST(Lexer, VarIsNoLongerKeyword)
 	{
+		// Expect: 'var' is a plain identifier.
 		Lexer lexer;
 		DiagnosticLabelList diagnosticLabelList;
 		const auto tokens = lexer.Tokenize("var", &diagnosticLabelList, false);
