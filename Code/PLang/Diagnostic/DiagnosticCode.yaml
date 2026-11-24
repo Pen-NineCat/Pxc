@@ -1,105 +1,126 @@
-- code   : E0001
-  name   : ExpectedModuleDecl
-  level  : Error
-  message: "The first declaration in module unit must be module declaration"
-  args   : [string]
-- code   : E0002
-  name   : UndefinedModuleIdent
-  level  : Error
-  message: "Undefined module identification {}"
-  args   : [string]
-- code   : E0003
-  name   : ExpectSemi
-  level  : Error
-  message: "Please input ;"
-  args   : []
-- code   : E0004
-  name   : UndefinedFunctionIdent
-  level  : Error
-  message: "Undefined function identification {}" 
-  args   : [string]
-- code   : E0005
-  name   : ExpectCharacterNotFound
-  level  : error
-  message: "Expect character: {} but get {}"
-  args   : [string,string]
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026-Present Pen-NineCat(PenNineCat)
+# https://github.com/Pen-NineCat
+
+# E00xx: lexer diagnostics (Code/PLang/Lex). E01xx: parser diagnostics (Code/PLang/Syntax).
+# Wxxxx: warnings. Append new codes to the end of their group; never reuse a deleted number.
+
+# ---------------------------------------------------------------------------
+# Lexer
+# ---------------------------------------------------------------------------
+
 - code   : E0006
   name   : UndefinedSymbol
-  level  : error
+  level  : Error
   message: "Undefined symbol {}"
-  args   : [string]
-- code   : E0007
-  name   : ExclusiveTypeQualifiers
-  level  : error
-  message: "Exclusive type qualifiers with {} and {}"
-  args   : [string,string]
-- code   : E0008
-  name   : DuplicateTypeQualifiers
-  level  : error
-  message: "Duplicate type qualifiers with {}"
-  args   : [string]
-- code   : E0009
-  name   : UndefinedCharcter
-  level  : error
-  message: "Undefined charcter {}"
   args   : [string]
 - code   : E00010
   name   : UnterminatedStringLiteral
-  level  : error
+  level  : Error
   message: "Unterminated string literal"
-  args   : []
-- code   : E00011
-  name   : PleaseInputDecl
-  level  : error
-  message: "Please input declaration"
-  args   : []
-- code   : E00012
-  name   : ModuleMustBeAtHeader
-  level  : error
-  message: "module declaration must be first declaration"
-  args   : []
-- code   : E00013
-  name   : PleaseInputIdent
-  level  : error
-  message: "Please input identification"
   args   : []
 - code   : E00014
   name   : UnterminatedCharLiteral
-  level  : error
-  message: "Unterminated string literal"
+  level  : Error
+  message: "Unterminated character literal"
   args   : []
 - code   : E00015
   name   : InvalidCharCodepoint
-  level  : error
+  level  : Error
   message: "Invalid character codepoint"
   args   : []
 - code   : E00016
   name   : InvalidEscapeSequences
-  level  : error
+  level  : Error
   message: "Invalid escape sequences"
   args   : []
 - code   : E00017
   name   : UnterminatedCommentLiteral
-  level  : error
+  level  : Error
   message: "Unterminated comment literal"
   args   : []
 - code   : E00018
   name   : InvalidNumericSeparatorsPosition
-  level  : error
+  level  : Error
   message: "Invalid number separators position"
   args   : []
 - code   : E00019
   name   : InvalidNumericLiteralPosition
-  level  : error
+  level  : Error
   message: "Invalid number literal position"
   args   : []
 - code   : E00020
   name   : InvalidNonASCIICodepointPosition
-  level  : error
-  message: "Non ASCII codepoint can't used to identification or operator"
+  level  : Error
+  message: "Non ASCII codepoint can't be used in identification or operator"
   args   : []
-- code   : E00021
+
+# ---------------------------------------------------------------------------
+# Parser
+# ---------------------------------------------------------------------------
+
+- code   : E0100
+  name   : ModuleMustBeFirst
+  level  : Error
+  message: "Module declaration must be the first declaration"
+  args   : []
+- code   : E0101
+  name   : ExpectSemi
+  level  : Error
+  message: "Please input ;"
+  args   : []
+- code   : E0102
+  name   : ExpectCharacterNotFound
+  level  : Error
+  message: "Expect {} but get {}"
+  args   : [string, string]
+- code   : E0103
+  name   : ExclusiveTypeQualifiers
+  level  : Error
+  message: "Exclusive type qualifiers with {} and {}"
+  args   : [string, string]
+- code   : E0104
+  name   : DuplicateTypeQualifiers
+  level  : Error
+  message: "Duplicate type qualifier {}"
+  args   : [string]
+- code   : E0106
+  name   : PleaseInputIdent
+  level  : Error
+  message: "Please input identifier"
+  args   : []
+- code   : E0107
   name   : ImportMustBeAtHeader
-  level  : error
-  message: "Import declaration must be before other non-import declaration"
+  level  : Error
+  message: "Import and friend module declarations must appear before any other declaration"
+  args   : []
+- code   : E0108
+  name   : InvalidNullableType
+  level  : Error
+  message: "Only one '?' may end a type"
+  args   : []
+- code   : E0109
+  name   : UnclosedTemplateArgumentList
+  level  : Error
+  message: "Unclosed template argument list"
+  args   : []
+- code   : E0110
+  name   : ExpectType
+  level  : Error
+  message: "Please input type"
+  args   : []
+- code   : E0111
+  name   : InvalidTypeQualifierOrder
+  level  : Error
+  message: "Type qualifiers must be written as 'const ref dyn', or 'mov' alone"
+  args   : []
+- code   : E0112
+  name   : UnmatchedGreater
+  level  : Error
+  message: "Unexpected '>' that closes no template argument list"
+  args   : []
+- code   : E0113
+  name   : InvalidImportPrefixOrder
+  level  : Error
+  message: "Import prefixes must be written as 'public using import'"
   args   : []
