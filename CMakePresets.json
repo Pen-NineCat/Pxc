@@ -38,6 +38,14 @@
       }
     },
     {
+      "name": "x64-release-tests",
+      "displayName": "x64 Release (Tests)",
+      "inherits": "x64-release",
+      "cacheVariables": {
+        "PXC_CMAKE_ENABLE_TESTS": "ON"
+      }
+    },
+    {
       "name": "x86-debug",
       "displayName": "x86 Debug",
       "inherits": "project-base",
@@ -53,6 +61,22 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "x86-debug-tests",
+      "displayName": "x86 Debug (Tests)",
+      "inherits": "x86-debug",
+      "cacheVariables": {
+        "PXC_CMAKE_ENABLE_TESTS": "ON"
+      }
+    },
+    {
+      "name": "x86-release-tests",
+      "displayName": "x86 Release (Tests)",
+      "inherits": "x86-release",
+      "cacheVariables": {
+        "PXC_CMAKE_ENABLE_TESTS": "ON"
+      }
     }
   ],
   "testPresets": [
@@ -60,6 +84,42 @@
       "name": "x64-debug-tests",
       "displayName": "x64 Debug (Tests)",
       "configurePreset": "x64-debug-tests",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": false
+      }
+    },
+    {
+      "name": "x86-debug-tests",
+      "displayName": "x86 Debug (Tests)",
+      "configurePreset": "x86-debug-tests",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": false
+      }
+    },
+    {
+      "name": "x64-release-tests",
+      "displayName": "x64 Release (Tests)",
+      "configurePreset": "x64-release-tests",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": false
+      }
+    },
+    {
+      "name": "x86-release-tests",
+      "displayName": "x86 Release (Tests)",
+      "configurePreset": "x86-release-tests",
       "output": {
         "outputOnFailure": true
       },
@@ -89,6 +149,18 @@
     {
       "name": "x86-release",
       "configurePreset": "x86-release"
+    },
+    {
+      "name": "x86-debug-tests",
+      "configurePreset": "x86-debug-tests"
+    },
+    {
+      "name": "x64-release-tests",
+      "configurePreset": "x64-release-tests"
+    },
+    {
+      "name": "x86-release-tests",
+      "configurePreset": "x86-release-tests"
     }
   ]
 }

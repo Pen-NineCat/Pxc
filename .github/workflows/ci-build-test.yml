@@ -1,0 +1,161 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026-Present Pen-NineCat(PenNineCat)
+# https://github.com/Pen-NineCat
+
+# Build and unit-test matrix for pull requests: Windows and Linux, x64 and x86, Release.
+#
+# The C++ CI is opt-in: it only runs for PRs carrying the `ci:cpp` label. A path filter cannot
+# tell "docs", "tools" and however many other C++-free paths apart without listing them one by one,
+# so the label decides instead of `paths` / `paths-ignore`.
+name: CI / Build & Test
+
+on:
+  pull_request:
+    branches: [ master ]
+    # `labeled` is needed because adding the label after the PR was opened has to start the CI.
+    types: [ opened, synchronize, reopened, ready_for_review, labeled ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-build-test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: ${{ matrix.name }}
+    # `workflow_dispatch` always runs; on pull requests the opt-in label decides. The `action`
+    # guard keeps `labeled` events of unrelated labels from re-running the whole matrix.
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event.action == 'labeled' && github.event.label.name == 'ci:cpp')
+      || (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'ci:cpp'))
+    runs-on: ${{ matrix.os }}
+    # LLVM is built from source whenever the vcpkg binary cache misses, which is far beyond the
+    # default 6 hours per job on a cold cache.
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Preset names are the CMakePresets.json configure/build/test presets; each entry needs
+          # all three, and the architecture has to match the toolchain the job enters below.
+          - name: Windows x64 Release
+            os: windows-2025
+            arch: x64
+            msvc_arch: amd64
+            preset: x64-release-tests
+          - name: Windows x86 Release
+            os: windows-2025
+            arch: x86
+            msvc_arch: x86
+            preset: x86-release-tests
+          - name: Linux x64 Release
+            os: ubuntu-24.04
+            arch: x64
+            preset: x64-release-tests
+          - name: Linux x86 Release
+            os: ubuntu-24.04
+            arch: x86
+            preset: x86-release-tests
+
+    env:
+      # Only release libraries are built: the matrix is Release, and a release-only LLVM halves both
+      # the port's build time and what the binary cache has to store.
+      VCPKG_BUILD_TYPE: release
+      # Filesystem binary cache, persisted by actions/cache below. One key per host system and
+      # architecture, so a triplet is never restored into another one.
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # The hosted runners ship CMake 3.x, the project requires 4.0 or newer.
+      - name: Set up CMake 4
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.3.x'
+
+      # GenerateDiagnosticTable.py needs PyYAML, and find_package(Python3) picks this interpreter up.
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install PyYAML
+        run: python -m pip install --disable-pip-version-check pyyaml
+
+      - name: Install Linux build tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+          if [ "${{ matrix.arch }}" = "x86" ]; then
+            sudo apt-get install -y gcc-multilib g++-multilib libc6-dev-i386
+          fi
+
+      # The pinned baseline in vcpkg-configuration.json needs a real vcpkg checkout, the one the
+      # runner happens to ship is not reliable.
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/microsoft/vcpkg "${GITHUB_WORKSPACE}/vcpkg"
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            cmd //c "${GITHUB_WORKSPACE}\\vcpkg\\bootstrap-vcpkg.bat" -disableMetrics
+          else
+            "${GITHUB_WORKSPACE}/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
+          fi
+          echo "VCPKG_ROOT=${GITHUB_WORKSPACE}/vcpkg" >> "${GITHUB_ENV}"
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-cache
+          key: vcpkg-release-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'cmake/triplets/**') }}
+          restore-keys: |
+            vcpkg-release-${{ runner.os }}-${{ matrix.arch }}-
+
+      # vcvarsall decides the toolchain, the preset only names the architecture. vcpkg derives the
+      # x64-windows / x86-windows triplet from the same environment, so no triplet is passed here.
+      - name: Enter MSVC environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+
+      # Printing the banner is enough, and deliberately no `| head -n 1` here: `shell: bash` runs
+      # with -o pipefail, so a writer that gets SIGPIPE after the reader exits would fail the step.
+      - name: Report toolchain
+        shell: bash
+        run: |
+          cmake --version
+          ctest --version
+          python --version
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            # `cl` without arguments only prints its banner and exits 0; the guard keeps an
+            # unexpected non-zero from failing an informational step.
+            cl 2>&1 || true
+          else
+            cc --version
+          fi
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }}
+
+      - name: Upload test logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v5
+        with:
+          name: ctest-logs-${{ matrix.name }}
+          path: out/build/${{ matrix.preset }}/Testing
+          if-no-files-found: ignore

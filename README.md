@@ -88,7 +88,7 @@ cmake --build --preset x64-debug-tests
 ctest --preset x64-debug-tests
 ```
 
-Only the x64 test preset exists today.
+Every architecture has a test preset (`x64-debug-tests`, `x86-debug-tests`, `x64-release-tests`, `x86-release-tests`), configure, build and test them with the matching preset name.
 
 ### AddressSanitizer
 
@@ -113,6 +113,10 @@ set VSINSTALLDIR=C:\Program Files\Microsoft Visual Studio\2022\Community
 Configure names the exact path it looked for when the file is missing.
 
 For more information about Segment Heap, see the [Visual Studio C++ blog post](https://devblogs.microsoft.com/cppblog/segment-heap-support-for-c-projects-in-visual-studio/).
+
+## Continuous integration
+
+`.github/workflows/ci-format.yml` and `.github/workflows/ci-build-test.yml` run on pull requests, but only for PRs labelled `ci:cpp`. The label is the opt-in for the C++ CI. The build matrix is Windows and Linux, x64 and x86, in Release; the formatting check uses a pinned clang-format.
 
 ## Docs
 
