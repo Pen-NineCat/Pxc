@@ -11,7 +11,7 @@ execute_process(
 )
 if(NOT generateResult EQUAL 0)
 	# A stale DiagnosticCodeTable.hpp still compiles and silently misses the new diagnostic codes.
-	message(FATAL_ERROR "GenerateDiagnosticTable.py failed with exit code ${generateResult}, check that PyYAML is installed for ${Python3_EXECUTABLE}.")
+	message(FATAL_ERROR "GenerateDiagnosticTable.py failed with exit code ${generateResult}, check the output for details.")
 endif()
 
 set(PLANG_CORE_SOURCES
@@ -19,6 +19,11 @@ set(PLANG_CORE_SOURCES
 	"Diagnostic/DiagnosticCodeTable.hpp"
 	"Common/Environment.hpp"
 	"Common/SourceView.hpp"
+	"AST/Node.hpp"
+	"AST/Type.hpp"
+	"AST/Decl.hpp"
+	"Syntax/Parser.h"
+	"Syntax/Parser.cpp"
 	"Lex/Keywords.hpp"
 	"Lex/Lexer.h"
 	"Lex/Lexer.cpp"
