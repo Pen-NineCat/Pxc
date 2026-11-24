@@ -13,8 +13,9 @@ namespace Pxc
 	{
 	public:
 		explicit ResourceScopeGuard(F&& func) noexcept(std::is_nothrow_move_constructible_v<F>)
-			: m_func(std::forward<F>(func)), m_active(true)
-		{}
+		    : m_func(std::forward<F>(func)), m_active(true)
+		{
+		}
 
 		~ResourceScopeGuard() noexcept
 		{
@@ -37,6 +38,7 @@ namespace Pxc
 		{
 			return m_active;
 		}
+
 	private:
 		void Run() noexcept
 		{
@@ -61,4 +63,4 @@ namespace Pxc
 
 	template <typename F>
 	ResourceScopeGuard(F&&) -> ResourceScopeGuard<std::decay_t<F>>;
-}
+} // namespace Pxc

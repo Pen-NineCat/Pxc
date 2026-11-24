@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <utility>
 #include "Environment.hpp"
+#include <utility>
 
 #ifdef PXC_BUILD_DEBUG
 #define PXC_DEBUG_REPORT_HANDLE(message)                                                                          \
@@ -16,12 +16,12 @@
 #define PXC_DEBUG_REPORT_HANDLE(message)
 #endif
 
-#define PXC_DEBUG_CHECK(cond,message)               \
-	if (!(cond))                                    \
-	{                                               \
-		PXC_DEBUG_REPORT_HANDLE(message);           \
-		std::unreachable();                         \
+#define PXC_DEBUG_CHECK(cond, message)    \
+	if (!(cond))                          \
+	{                                     \
+		PXC_DEBUG_REPORT_HANDLE(message); \
+		std::unreachable();               \
 	}
 
-#define PXC_DEBUG_TERMINATE(message);               \
-	PXC_DEBUG_REPORT_HANDLE(message)                \
+#define PXC_DEBUG_TERMINATE(message) \
+	PXC_DEBUG_REPORT_HANDLE(message) \
