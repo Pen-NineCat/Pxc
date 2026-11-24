@@ -108,8 +108,12 @@ jobs:
           fi
           echo "VCPKG_ROOT=${GITHUB_WORKSPACE}/vcpkg" >> "${GITHUB_ENV}"
 
+      # Restore and save are separate actions on purpose: the combined `actions/cache` saves in a
+      # post step, which GitHub skips when a job fails, so a failed build would throw away every
+      # port that did get built. `actions/cache/save` below runs with `always()` instead.
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/vcpkg-cache
           key: vcpkg-release-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'cmake/triplets/**') }}
@@ -154,6 +158,16 @@ jobs:
 
       - name: Test
         run: ctest --preset ${{ matrix.preset }}
+
+      # A red build or a red test run still leaves the ports that were already built in the cache
+      # directory; keeping them is what makes the next attempt cheap. `cache-hit == 'true'` means
+      # the exact key already exists and there is nothing to write.
+      - name: Save vcpkg binary cache
+        if: always() && steps.vcpkg-cache.outputs.cache-primary-key != '' && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-cache
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
       - name: Upload test logs
         if: failure() || cancelled()
