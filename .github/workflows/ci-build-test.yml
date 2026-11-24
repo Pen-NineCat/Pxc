@@ -62,11 +62,8 @@ jobs:
             preset: x86-release-tests
 
     env:
-      # Only release libraries are built: the matrix is Release, and a release-only LLVM halves both
-      # the port's build time and what the binary cache has to store.
-      VCPKG_BUILD_TYPE: release
-      # Filesystem binary cache, persisted by actions/cache below. One key per host system and
-      # architecture, so a triplet is never restored into another one.
+      # Filesystem binary cache, persisted by actions/cache below. One key per host system,
+      # architecture and build type, so a triplet is never restored into another one.
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
 
     steps:
@@ -143,8 +140,14 @@ jobs:
             cc --version
           fi
 
+      # The dependencies are built release-only, which is what halves the LLVM build: VCPKG_BUILD_TYPE
+      # is a triplet variable and an environment variable of that name is ignored, so the standard
+      # triplets are replaced by the release-only copies in cmake/triplets/release-only. The overlay
+      # is a command-line -D because the toolchain only sets it for its own triplet directory.
       - name: Configure
-        run: cmake --preset ${{ matrix.preset }}
+        run: >-
+          cmake --preset ${{ matrix.preset }}
+          -DVCPKG_OVERLAY_TRIPLETS=${{ github.workspace }}/cmake/triplets/release-only
 
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }}

@@ -116,7 +116,7 @@ For more information about Segment Heap, see the [Visual Studio C++ blog post](h
 
 ## Continuous integration
 
-`.github/workflows/ci-format.yml` and `.github/workflows/ci-build-test.yml` run on pull requests, but only for PRs labelled `ci:cpp`. The label is the opt-in for the C++ CI. The build matrix is Windows and Linux, x64 and x86, in Release; the formatting check uses a pinned clang-format.
+`.github/workflows/ci-format.yml` and `.github/workflows/ci-build-test.yml` run on pull requests, but only for PRs labelled `ci:cpp`. The label is the opt-in for the C++ CI. The build matrix is Windows and Linux, x64 and x86, in Release; the formatting check uses a pinned clang-format. The dependencies are forcibly built release-only (`cmake/triplets/release-only`)  to prevent compiling useless debug package.
 
 ## Docs
 
