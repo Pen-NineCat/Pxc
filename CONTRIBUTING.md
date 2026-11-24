@@ -4,10 +4,13 @@ Thanks for helping improve Pxc. We welcome contributions and suggestions. Even i
 
 ## LLM policy
 
-We accept LLM, but before you commit with LLM, please ensure that:
+  We accept LLM-assisted contributions.
 
-- **Any LLM-generated** code has been clearly **disclosed** in your issue or PR description. 
-- The PR description reflects your intentions and thoughts about these changes. We **discourage** LLM-generated PR descriptions, because we can read, and also can use the same LLM tools to read your changes. In fact, we also can get an LLM-generated summary if we want.
+- **Disclosing it.** In your issue, PR description, and before merge, say which parts were LLM-generated — code, tests, docs, comments, commit messages — and what you did with them: taken as-is, edited, or reviewed line by line. Write this yourself, in your own words. "LLM was used" doesn't tell a reviewer which claims in the diff still need checking.
+
+- **Writing the description yourself.** The issue and PR description reflects your intentions and thoughts about these changes. We can already generate a summary of your diff; we can't generate evidence that you read it. Tell us what you were trying to do and what you decided against. That part isn't recoverable from the code, and it's the part that makes the change yours.
+
+- If disclosure is a problem for you, don't send the PR. We'd rather hear it before merge than after.
 
 ## Preparation
 
