@@ -5,6 +5,7 @@
 set(PXC_COMMON_SOURCES
 	"Environment.hpp"
 	"StrUnorderedMap.hpp"
+	"Flag.hpp"
 )
 
 add_library(Pxc-Common INTERFACE)
