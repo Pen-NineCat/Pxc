@@ -116,7 +116,7 @@ For more information about Segment Heap, see the [Visual Studio C++ blog post](h
 
 ## Contributing
 
-We welcome contributions and suggestions, see our [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for more information.
+We welcome contributions and suggestions. See our [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for more information.
 
 ## Continuous integration
 
