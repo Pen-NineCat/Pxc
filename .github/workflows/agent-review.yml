@@ -71,6 +71,7 @@ jobs:
     needs: resolve
     if: needs.resolve.result == 'success'
     runs-on: ubuntu-24.04
+    environment: PR-Review-Workflow
     timeout-minutes: 5
     steps:
       # The default branch: the script that runs beside the project token is never the pull
@@ -93,6 +94,7 @@ jobs:
     needs: resolve
     if: needs.resolve.result == 'success'
     runs-on: ubuntu-24.04
+    environment: PR-Review-Workflow
     timeout-minutes: 20
     permissions:
       contents: read
@@ -163,6 +165,7 @@ jobs:
       && needs.resolve.result == 'success'
       && (needs.review.result == 'success' || needs.review.result == 'failure')
     runs-on: ubuntu-24.04
+    environment: PR-Review-Workflow
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
