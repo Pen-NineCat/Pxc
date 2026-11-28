@@ -41,18 +41,21 @@ import urllib.request
 API = "https://api.github.com"
 STATUS_FIELD = "Status"
 
-# A user-owned project answers `user`, an organization-owned one `organization`; both aliases run
-# in one request so the caller does not have to know which kind the login is.
+# A user-owned project answers `user`, an organization-owned one `organization`, and asking for the
+# wrong kind is an GraphQL *error* rather than an empty result — which is why the two are separate
+# requests: one query naming both fails on the branch that does not apply.
 PROJECT_QUERY = """
 query($login: String!, $number: Int!) {
-  user(login: $login) { projectV2(number: $number) { ...Project } }
-  organization(login: $login) { projectV2(number: $number) { ...Project } }
+  %s(login: $login) { projectV2(number: $number) { ...Project } }
 }
 fragment Project on ProjectV2 {
   id
   field(name: "Status") { ... on ProjectV2SingleSelectField { id options { id name } } }
 }
 """
+
+# GitHub answers a wrong-kind lookup with this, and only this, message.
+WRONG_OWNER_KIND = "Could not resolve to a"
 
 # `fieldValueByName` and not `fieldValues(first: 100)`: the item may sit in several projects, and
 # only the status of the one this flow owns is interesting.
@@ -147,20 +150,36 @@ def FindItem(token: str, owner: str, repo: str, pullNumber: int, projectNumber: 
 	return None
 
 
+def IsWrongOwnerKind(message: str) -> bool:
+	"""True for the error GitHub returns when a login is an organization and was asked for as a user."""
+	return WRONG_OWNER_KIND in message
+
+
 def FindProject(token: str, login: str, number: int) -> dict:
-	"""Return the project's id, its `Status` field id and that field's options."""
-	data = Post(PROJECT_QUERY, {"login": login, "number": number}, token)
-	project = ((data.get("user") or {}).get("projectV2")) or ((data.get("organization") or {}).get("projectV2"))
-	if not project:
-		raise RuntimeError(f"project #{number} of {login} is not visible to the token")
-	field = project.get("field") or {}
-	if not field:
-		raise RuntimeError(f"project #{number} has no field named {STATUS_FIELD}")
-	return {
-		"id": str(project.get("id") or ""),
-		"field": str(field.get("id") or ""),
-		"options": list(field.get("options") or []),
-	}
+	"""Return the project's id, its `Status` field id and that field's options.
+
+	The login is tried as a user and then as an organization: a project is owned by one or the
+	other, so exactly one request can resolve it.
+	"""
+	for kind in ("user", "organization"):
+		try:
+			data = Post(PROJECT_QUERY % kind, {"login": login, "number": number}, token)
+		except RuntimeError as error:
+			if IsWrongOwnerKind(str(error)):
+				continue
+			raise
+		project = (data.get(kind) or {}).get("projectV2")
+		if not project:
+			continue
+		field = project.get("field") or {}
+		if not field:
+			raise RuntimeError(f"project #{number} has no field named {STATUS_FIELD}")
+		return {
+			"id": str(project.get("id") or ""),
+			"field": str(field.get("id") or ""),
+			"options": list(field.get("options") or []),
+		}
+	raise RuntimeError(f"project #{number} of {login} is not visible to the token")
 
 
 def SetStatus(token: str, projectId: str, itemId: str, fieldId: str, optionId: str) -> None:
@@ -182,6 +201,11 @@ def SelfTest() -> int:
 	assert MatchOption([{"id": "a", "name": "R1"}], "R1") == "a"
 	assert MatchOption([{"id": "a", "name": "R1"}], "R2") == ""
 	assert MatchOption([], "R1") == ""
+	# Asking for the wrong owner kind is an API error, not an empty result; only that message may
+	# be swallowed while the other kind is tried.
+	assert IsWrongOwnerKind("Could not resolve to an Organization with the login of 'Pen-NineCat'.")
+	assert IsWrongOwnerKind("Could not resolve to a User with the login of 'some-org'.")
+	assert not IsWrongOwnerKind("Bad credentials")
 	print("self-test ok")
 	return 0
 

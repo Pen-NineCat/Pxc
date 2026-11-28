@@ -458,9 +458,13 @@ def SendChat(base: str, key: str, payload: dict) -> tuple[dict, dict]:
 			with urllib.request.urlopen(request, timeout=300) as response:
 				data = json.loads(response.read().decode("utf-8"))
 			try:
-				message = data["choices"][0]["message"]
+				choice = data["choices"][0]
+				message = choice["message"]
 			except (KeyError, IndexError, TypeError) as error:
 				raise RuntimeError(f"unexpected chat completion payload: {error}") from error
+			# Kept for the failure path: an answer that cannot be parsed is diagnosed with how the
+			# completion ended and how much the model wrote.
+			message["finish_reason"] = choice.get("finish_reason")
 			return message, data.get("usage", {})
 		except urllib.error.HTTPError as error:
 			detail = error.read()[:400].decode("utf-8", "replace")
@@ -511,12 +515,12 @@ def CallChat(messages: list[dict], tools: list[dict] | None) -> tuple[dict, dict
 		return SendChat(base, key, payload)
 
 
-def CallModel(system: str, user: str) -> tuple[str, dict]:
+def CallModel(system: str, user: str) -> tuple[str, dict, str]:
 	message, usage = CallChat(
 		[{"role": "system", "content": system}, {"role": "user", "content": user}],
 		None,
 	)
-	return str(message.get("content") or ""), usage
+	return str(message.get("content") or ""), usage, str(message.get("finish_reason") or "")
 
 
 def ResolvePath(path: str) -> Path:
@@ -622,22 +626,31 @@ def RunTool(name: str, arguments: dict, budget: list[int]) -> str:
 	return text
 
 
-def ReviewWithTools(system: str, user: str) -> tuple[str, dict]:
+ANSWER_NOW = (
+	"The tool budget is exhausted. Answer now with the one JSON object and no tool calls: what you"
+	" could not verify belongs in the summary, not in another lookup."
+)
+
+
+def ReviewWithTools(system: str, user: str) -> tuple[str, dict, str]:
 	"""Ask the model, letting it read the checkout before it answers.
 
 	The diff and the full text of every changed file are already in the prompt, so a call is only
 	for what they cannot show: a header, a caller, a build file, a test. The last round carries no
-	tools, so the answer is always a completion and never another call.
+	tools and says so, because otherwise the model keeps asking for files it cannot get and answers
+	in prose instead of the JSON object.
 	"""
 	messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
 	budget = [MAX_TOOL_CONTEXT_CHARS]
 	usage: dict = {}
 	for round in range(MAX_TOOL_ROUNDS + 1):
 		last = round == MAX_TOOL_ROUNDS
+		if last:
+			messages.append({"role": "user", "content": ANSWER_NOW})
 		message, usage = CallChat(messages, None if last else TOOLS)
 		calls = message.get("tool_calls") or []
 		if not calls:
-			return str(message.get("content") or ""), usage
+			return str(message.get("content") or ""), usage, str(message.get("finish_reason") or "")
 		if last:
 			raise RuntimeError("the model called a tool in the answering round")
 		messages.append({"role": "assistant", "content": message.get("content") or "", "tool_calls": calls})
@@ -804,16 +817,33 @@ def SendReview(token: str, repo: str, prNumber: int, payload: dict) -> tuple[int
 	return 200, ""
 
 
-def WriteStepSummary(body: str) -> None:
-	"""Keep the review readable on the run page when it never reached the pull request."""
+def WriteStepSummary(title: str, body: str) -> None:
+	"""Keep a long text readable on the run page, where the log is easy to miss."""
 	path = os.environ.get("GITHUB_STEP_SUMMARY", "")
 	if not path:
 		return
 	try:
 		with open(path, "a", encoding="utf-8") as handle:
-			handle.write(f"## Agent review (not posted)\n\n{body}\n")
+			handle.write(f"## {title}\n\n{body}\n")
 	except OSError as error:
 		print(f"::warning::the step summary was not written: {error}")
+
+
+def ShowRawAnswer(content: str, finishReason: str) -> None:
+	"""Print the answer that could not be parsed, and keep it on the run page.
+
+	`::stop-commands::` wraps the text, because the answer is model output influenced by an
+	untrusted diff: a line in it must not be able to act as a workflow command.
+	"""
+	body = content if content.strip() else "(empty answer)"
+	print(f"::warning::finish_reason={finishReason or '(unknown)'}, {len(content)} chars, no JSON object")
+	print("::stop-commands::raw-answer")
+	print(body[:8000] + ("\n... (truncated)" if len(body) > 8000 else ""))
+	print("::raw-answer::")
+	WriteStepSummary(
+		"Unparsable model answer",
+		f"finish_reason: `{finishReason or 'unknown'}`\n\n~~~text\n{body[:8000]}\n~~~",
+	)
 
 
 def PostReview(repo: str, prNumber: int, commitId: str, body: str, comments: list[dict]) -> None:
@@ -834,7 +864,7 @@ def PostReview(repo: str, prNumber: int, commitId: str, body: str, comments: lis
 		status, detail = SendReview(token, repo, prNumber, {**payload, "comments": []})
 	if status not in (200, 201):
 		print(body)
-		WriteStepSummary(body)
+		WriteStepSummary("Agent review (not posted)", body)
 		raise RuntimeError(f"posting the review failed: {status} {detail}")
 
 
@@ -1019,6 +1049,33 @@ def SelfTest() -> int:
 	if override is not None:
 		os.environ["PXC_CI_STATE"] = override
 
+	# The answering round says the budget is spent; without it the model answers in prose.
+	rounds: list[bool] = []
+
+	def StubChat(messages, tools):
+		rounds.append(tools is not None)
+		if tools is not None:
+			calls = [
+				{
+					"id": str(len(rounds)),
+					"type": "function",
+					"function": {"name": "list_dir", "arguments": '{"path":"Tools"}'},
+				}
+			]
+			return {"role": "assistant", "content": None, "tool_calls": calls, "finish_reason": "tool_calls"}, {}
+		assert messages[-1] == {"role": "user", "content": ANSWER_NOW}, messages[-1]
+		return {"role": "assistant", "content": '{"summary":"","findings":[]}', "finish_reason": "stop"}, {}
+
+	module = globals()
+	original = module["CallChat"]
+	try:
+		module["CallChat"] = StubChat
+		answer, _, finishReason = ReviewWithTools("s", "u")
+	finally:
+		module["CallChat"] = original
+	assert finishReason == "stop", finishReason
+	assert len(rounds) == MAX_TOOL_ROUNDS + 1, rounds
+
 	# A `workflow_run` payload has no pull request object; without a number to fetch, that is an
 	# error rather than a review of nothing.
 	payload = {"pull_request": {"title": "t"}}
@@ -1102,17 +1159,22 @@ def main() -> int:
 	toolsEnabled = (os.environ.get("PXC_REVIEW_TOOLS") or "on").strip().lower() not in ("off", "0", "false")
 	print(f"repository tools: {'on' if toolsEnabled else 'off'}")
 	if not toolsEnabled:
-		content, usage = CallModel(system, user)
+		content, usage, finishReason = CallModel(system, user)
 	else:
 		try:
-			content, usage = ReviewWithTools(system, user)
+			content, usage, finishReason = ReviewWithTools(system, user)
 		except ToolsUnsupported:
 			# An endpoint without function calling still gets a review: it sees the same prompt,
 			# just without the option to read a file that is not in it.
 			print("::warning::the endpoint rejected tools, retrying without them")
-			content, usage = CallModel(system, user)
+			content, usage, finishReason = CallModel(system, user)
 	print(f"usage: {json.dumps(usage)}")
-	summary, findings = ParseAnswer(content)
+	print(f"answer: {len(content)} chars, finish_reason={finishReason or '(unknown)'}")
+	try:
+		summary, findings = ParseAnswer(content)
+	except RuntimeError as error:
+		ShowRawAnswer(content, finishReason)
+		raise RuntimeError(f"the model answer is not usable: {error}") from error
 	inline, dropped = NormalizeFindings(findings, commentable)
 
 	model = os.environ.get("PXC_REVIEW_MODEL") or DEFAULT_MODEL
