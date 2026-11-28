@@ -1,0 +1,182 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026-Present Pen-NineCat(PenNineCat)
+# https://github.com/Pen-NineCat
+
+# The privileged half of the review flow. It runs after `Review / Request` finished, never straight
+# from a pull request event, so it holds the model key and a write token while nothing it executes
+# comes from the request: the head is fetched with `git` as data and the reviewer is the copy from
+# the default branch. One step that runs anything from that checkout turns this job into a pwn
+# request; do not add one.
+#
+# Carries both automatic project transitions: R1 before the review (a push makes the previous
+# review stale) and R2 after it (a maintainer has to look, whatever the verdict was).
+#
+# Required configuration:
+#   secret   PXC_REVIEW_API_KEY    API key of the endpoint
+#   secret   PXC_PROJECT_TOKEN     token with the `project` scope, for the R1/R2 transitions
+#   variable PXC_REVIEW_API_BASE   endpoint base, default https://api.deepseek.com/v1
+#   variable PXC_REVIEW_MODEL      model id, default deepseek-chat
+#   variable PXC_REVIEW_LANGUAGE   language of the generated text, default English
+name: Agent / Review
+
+on:
+  workflow_run:
+    workflows: ["Review / Request"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+# A newer push cancels the older run; the newer one does the whole reset -> review -> hand-off.
+concurrency:
+  group: review-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  # `workflow_run.pull_requests` is normally populated for a pull request run, but the commit API
+  # answers regardless; the number drives every later job, so it is resolved once, here.
+  resolve:
+    name: Review / Resolve
+    if: >-
+      github.event.workflow_run.event == 'pull_request'
+      && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      number: ${{ steps.find.outputs.number }}
+    steps:
+      - name: Resolve the pull request number
+        id: find
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          number="${PR_NUMBER}"
+          if [ -z "$number" ]; then
+            number=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/pulls" \
+              --jq 'map(select(.state == "open")) | .[0].number // empty')
+          fi
+          if [ -z "$number" ]; then
+            echo "::error::no pull request is associated with ${HEAD_SHA}"
+            exit 1
+          fi
+          echo "number=${number}" >> "$GITHUB_OUTPUT"
+
+  reset:
+    name: Review / Reset
+    needs: resolve
+    if: needs.resolve.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # The default branch: the script that runs beside the project token is never the pull
+      # request's, and there is no checkout of the pull request at all.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Move the item back to R1
+        env:
+          PXC_PROJECT_TOKEN: ${{ secrets.PXC_PROJECT_TOKEN }}
+          PXC_PROJECT_OWNER: Pen-NineCat
+          PXC_PROJECT_NUMBER: '5'
+          PXC_PR_NUMBER: ${{ needs.resolve.outputs.number }}
+          PXC_STATUS_TO: R1
+        run: python Tools/review_state.py
+
+  review:
+    name: Agent / Review
+    needs: resolve
+    if: needs.resolve.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # The reviewer and its conventions come from the default branch, never from the pull request:
+      # a pull request could otherwise ship a looser reviewer and collect a green check.
+      - name: Check out the trusted tooling
+        uses: actions/checkout@v7
+        with:
+          path: trusted
+          persist-credentials: false
+
+      # `refs/pull/N/head` lives on the base repository, so this reaches a fork head, and the fetch
+      # is anonymous: no credential exists in either checkout. Every branch is fetched because the
+      # diff needs the base commit, not only the head's ancestry.
+      - name: Fetch the pull request head as data
+        env:
+          PR_NUMBER: ${{ needs.resolve.outputs.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          mkdir -p pr
+          cd pr
+          git init --quiet .
+          git remote add origin "${GITHUB_SERVER_URL}/${REPOSITORY}"
+          git fetch --quiet --no-tags origin \
+            "+refs/heads/*:refs/remotes/origin/*" \
+            "+refs/pull/${PR_NUMBER}/head:refs/review/pr"
+          git checkout --quiet refs/review/pr
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      # Pure parsing tests: no network, no secrets.
+      - name: Self test the reviewer
+        run: python trusted/Tools/agent_review.py --self-test
+
+      # Secrets reach the process only through the environment: never as a command line argument
+      # (visible in `ps`) and never echoed (the log masks them anyway, but the mask is a safety net,
+      # not a licence to print it).
+      - name: Review
+        # cwd is the pull request tree, so the diff, the tools and the file reads all see it; the
+        # script itself is the trusted copy, resolved through `../trusted`.
+        working-directory: pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PXC_REVIEW_API_KEY: ${{ secrets.PXC_REVIEW_API_KEY }}
+          PXC_REVIEW_API_BASE: ${{ vars.PXC_REVIEW_API_BASE }}
+          PXC_REVIEW_MODEL: ${{ vars.PXC_REVIEW_MODEL }}
+          PXC_REVIEW_LANGUAGE: ${{ vars.PXC_REVIEW_LANGUAGE }}
+          # Repository tools are on unless set to `off`; an endpoint without function calling is
+          # also detected and falls back to one request.
+          PXC_REVIEW_TOOLS: ${{ vars.PXC_REVIEW_TOOLS }}
+          # A `workflow_run` payload carries no pull request object, so the number comes from the
+          # job above; the title, the body, both SHAs and the labels are read from the API.
+          PR_NUMBER: ${{ needs.resolve.outputs.number }}
+        run: python ../trusted/Tools/agent_review.py
+
+  hand-off:
+    name: Review / Hand-off
+    needs: [resolve, review]
+    # A failure is a review with blocking findings, and a maintainer still has to look at those;
+    # only a cancelled run (a newer push) stays out of the way.
+    if: >-
+      always()
+      && needs.resolve.result == 'success'
+      && (needs.review.result == 'success' || needs.review.result == 'failure')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Move the item from R1 to R2
+        env:
+          PXC_PROJECT_TOKEN: ${{ secrets.PXC_PROJECT_TOKEN }}
+          PXC_PROJECT_OWNER: Pen-NineCat
+          PXC_PROJECT_NUMBER: '5'
+          PXC_PR_NUMBER: ${{ needs.resolve.outputs.number }}
+          # R1 is a precondition: a maintainer who already moved the item to Ready does not have it
+          # pulled back by a review that finished after that decision.
+          PXC_STATUS_FROM: R1
+          PXC_STATUS_TO: R2
+        run: python Tools/review_state.py

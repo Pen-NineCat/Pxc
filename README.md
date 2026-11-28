@@ -114,9 +114,13 @@ Configure names the exact path it looked for when the file is missing.
 
 For more information about Segment Heap, see the [Visual Studio C++ blog post](https://devblogs.microsoft.com/cppblog/segment-heap-support-for-c-projects-in-visual-studio/).
 
+## Contributing
+
+We welcome contributions and suggestions. See our [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for more information.
+
 ## Continuous integration
 
-`.github/workflows/ci-format.yml` and `.github/workflows/ci-build-test.yml` run on pull requests, but only for PRs labelled `ci:cpp`. The label is the opt-in for the C++ CI. The build matrix is Windows and Linux, x64 and x86, in Release; the formatting check uses a pinned clang-format. The dependencies are forcibly built release-only (`cmake/triplets/release-only`)  to prevent compiling useless debug package.
+`.github/workflows/ci-format.yml` and `.github/workflows/ci-build-test.yml` run on pull requests, but only for PRs labelled `ci:cpp`. The label is the opt-in for the C++ CI. The build matrix is Windows and Linux, x64 and x86, in Release; the formatting check uses a pinned clang-format. The dependencies are forcibly built release-only (`cmake/triplets/release-only`)  to prevent compiling useless debug dependencies.
 
 ## Docs
 
