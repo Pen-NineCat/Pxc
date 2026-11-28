@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026-Present Pen-NineCat(PenNineCat)
+# https://github.com/Pen-NineCat
+
+# The unprivileged half of the review flow. It exists so `Agent / Review` can be triggered after a
+# pull request event while running in the base repository context: `workflow_run` is not blocked by
+# the `pull_request_target` default policy (GitHub blocks that event in public repositories from
+# 2 December 2026) and it never executes anything the pull request controls.
+#
+# Nothing here reaches a secret, so a pull request from a fork is fine. Drafts are skipped: the
+# review runs once the pull request is marked ready for review.
+name: Review / Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  request:
+    name: Review / Request
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Announce the request
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "review requested for #${PR_NUMBER}"
