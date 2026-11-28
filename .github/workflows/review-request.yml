@@ -32,4 +32,7 @@ jobs:
       - name: Announce the request
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: echo "review requested for #${PR_NUMBER}"
+        # A block scalar, not `run: echo "… #${PR_NUMBER}"`: in a plain scalar a `#` after a space
+        # starts a YAML comment, which truncated this line and left bash with an open quote.
+        run: |
+          echo "review requested for #${PR_NUMBER}"
